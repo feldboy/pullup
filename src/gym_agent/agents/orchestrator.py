@@ -304,7 +304,7 @@ class GymAgent:
             prompt = f"Conversation history:\n{history_text}\n\nNew message: {message}"
         
         result = await self._agent.run(prompt, deps=deps)
-        return result.data
+        return result.output
     
     async def get_customer_by_telegram(self, telegram_id: int) -> Customer | None:
         """Look up customer by Telegram ID."""

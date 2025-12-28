@@ -141,11 +141,21 @@ async def simulate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user = update.effective_user
     
     scenarios = {
-        "absent": "Simulate receiving absence check-in message",
-        "payment": "Simulate payment reminder",
-        "expiring": "Simulate membership expiring message",
-        "complaint": "How to simulate a complaint scenario",
-        "question": "How to test FAQ questions",
+        # Agent-initiated scenarios
+        "absent": "Bot sends absence check-in message",
+        "payment": "Bot sends payment reminder",
+        "expiring": "Bot sends membership expiring notice",
+        "welcome": "Bot sends welcome message for new member",
+        # User test scenarios - tell user what to type
+        "complaint": "Test complaint handling",
+        "question": "Test FAQ / general questions",
+        "schedule": "Test class scheduling",
+        "cancel": "Test cancellation requests",
+        "hours": "Test gym hours (RAG)",
+        "classes": "Test class information (RAG)",
+        "pricing": "Test pricing questions",
+        "hebrew": "Test Hebrew conversations",
+        "escalate": "Test escalation triggers",
     }
     
     if not context.args:
@@ -160,7 +170,6 @@ async def simulate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     scenario = context.args[0].lower()
     
     if scenario == "absent":
-        # Simulate agent-initiated absence check-in
         await update.message.reply_text(
             "היי, הכל בסדר? לא ראינו אותך השבוע 🤔"
         )
@@ -174,19 +183,113 @@ async def simulate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             "היי, רק להזכיר - המנוי שלך מסתיים בעוד שבוע. "
             "רוצה שאסדר את החידוש?"
         )
+    elif scenario == "welcome":
+        await update.message.reply_text(
+            "ברוכים הבאים למכון EloozFit! 🎉\n"
+            "שמח שהצטרפת אלינו. האימון הראשון שלך מחכה!\n"
+            "יש לך שאלות? אני כאן בשבילך."
+        )
     elif scenario == "complaint":
         await update.message.reply_text(
-            "To test complaint handling, try sending:\n"
-            "• 'השירות פה גרוע'\n"
-            "• 'I'm not happy with the gym'\n"
-            "• 'רוצה לדבר עם מנהל'"
+            "*Test Complaint Handling:*\n\n"
+            "Try these messages:\n"
+            "• `השירות פה גרוע` (bad service)\n"
+            "• `I'm not happy with the gym`\n"
+            "• `רוצה לדבר עם מנהל` (want to speak to manager)\n"
+            "• `המאמנים לא מקצועיים` (trainers unprofessional)\n"
+            "• `אני מאוכזב` (I'm disappointed)\n"
+            "• `זה לא מקובל` (this is unacceptable)",
+            parse_mode="Markdown"
         )
     elif scenario == "question":
         await update.message.reply_text(
-            "To test FAQ handling, try asking:\n"
-            "• 'מתי אתם פתוחים בשבת?'\n"
-            "• 'What classes do you have?'\n"
-            "• 'איך אפשר להקפיא מנוי?'"
+            "*Test FAQ Questions:*\n\n"
+            "Try these (uses RAG knowledge base):\n"
+            "• `מתי אתם פתוחים?` (opening hours)\n"
+            "• `יש חניה?` (parking)\n"
+            "• `יש מקלחות?` (showers)\n"
+            "• `מה כלול במנוי?` (what's included)\n"
+            "• `אפשר להביא אורח?` (guests allowed)\n"
+            "• `יש הנחות?` (discounts)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "schedule":
+        await update.message.reply_text(
+            "*Test Class Scheduling:*\n\n"
+            "Try these:\n"
+            "• `אני רוצה להירשם לשיעור` (register for class)\n"
+            "• `מתי יש יוגה?` (when is yoga)\n"
+            "• `יש פילאטיס מחר?` (pilates tomorrow)\n"
+            "• `אפשר לבטל את השיעור?` (cancel class)\n"
+            "• `תזכיר לי על השיעור` (remind me)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "cancel":
+        await update.message.reply_text(
+            "*Test Cancellation Requests:*\n\n"
+            "Try these:\n"
+            "• `רוצה לבטל מנוי` (cancel membership)\n"
+            "• `להקפיא את המנוי` (freeze membership)\n"
+            "• `לא מתאים לי יותר` (doesn't suit me)\n"
+            "• `אני עובר לג'ים אחר` (moving to another gym)\n"
+            "• `מה התהליך לביטול?` (cancellation process)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "hours":
+        await update.message.reply_text(
+            "*Test Opening Hours (RAG):*\n\n"
+            "Try these:\n"
+            "• `מתי אתם פתוחים?`\n"
+            "• `שעות פתיחה בשבת?`\n"
+            "• `פתוחים בערב?`\n"
+            "• `עד מתי פתוח היום?`\n"
+            "• `What are your hours?`",
+            parse_mode="Markdown"
+        )
+    elif scenario == "classes":
+        await update.message.reply_text(
+            "*Test Class Information (RAG):*\n\n"
+            "Try these:\n"
+            "• `איזה שיעורים יש?` (what classes)\n"
+            "• `יש פילאטיס?` (pilates)\n"
+            "• `יש שיעורי ספינינג?` (spinning)\n"
+            "• `יש שיעורים לילדים?` (kids classes)\n"
+            "• `מה הלו\"ז של השיעורים?` (class schedule)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "pricing":
+        await update.message.reply_text(
+            "*Test Pricing Questions:*\n\n"
+            "Try these:\n"
+            "• `כמה עולה מנוי?` (membership cost)\n"
+            "• `יש מבצעים?` (promotions)\n"
+            "• `מחיר לסטודנטים?` (student price)\n"
+            "• `יש תקופת ניסיון?` (trial period)\n"
+            "• `אפשר לשלם בתשלומים?` (payment plans)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "hebrew":
+        await update.message.reply_text(
+            "*Test Hebrew Conversations:*\n\n"
+            "Try these:\n"
+            "• `שלום` (hello)\n"
+            "• `תודה רבה` (thank you)\n"
+            "• `מה קורה?` (what's up)\n"
+            "• `יש לי בעיה` (I have a problem)\n"
+            "• `אני צריך עזרה` (I need help)\n"
+            "• `לא הבנתי` (I don't understand)",
+            parse_mode="Markdown"
+        )
+    elif scenario == "escalate":
+        await update.message.reply_text(
+            "*Test Escalation Triggers:*\n\n"
+            "These should trigger escalation:\n"
+            "• `רוצה לדבר עם מנהל` (speak to manager)\n"
+            "• `זה דחוף מאוד` (very urgent)\n"
+            "• `אני אתבע אתכם` (I'll sue you)\n"
+            "• `הולך לפרסם ברשתות` (posting on social media)\n"
+            "• `זה בלתי נסבל` (unbearable)",
+            parse_mode="Markdown"
         )
     else:
         await update.message.reply_text(f"Unknown scenario: {scenario}")
