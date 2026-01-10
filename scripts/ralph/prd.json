@@ -126,8 +126,8 @@
                 "Typecheck passes"
             ],
             "priority": 8,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Implemented in ProactiveOutreachService with Hebrew templates. Prevents duplicates via analytics events."
         },
         {
             "id": "US-009",
@@ -142,8 +142,8 @@
                 "Typecheck passes"
             ],
             "priority": 9,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "track_event() in DatabaseService. Events tracked throughout GymAgent and OutreachService."
         },
         {
             "id": "US-010",
@@ -158,8 +158,8 @@
                 "Typecheck passes"
             ],
             "priority": 10,
-            "passes": false,
-            "notes": "Critical for not annoying customers"
+            "passes": true,
+            "notes": "RateLimiter service with can_send_message() and get_rate_limit_status(). Settings configurable."
         }
     ]
 }

@@ -316,7 +316,125 @@ class ProactiveOutreachService:
             results.append(result)
         
         return results
-
+    
+    def get_milestone_for_visits(self, total_visits: int) -> int | None:
+        """
+        Get the highest milestone reached for a given visit count.
+        
+        Args:
+            total_visits: Customer's total visit count
+            
+        Returns:
+            Milestone number (10, 50, 100, 200) or None
+        """
+        milestones = sorted(MILESTONE_TEMPLATES.keys(), reverse=True)
+        for milestone in milestones:
+            if total_visits >= milestone:
+                return milestone
+        return None
+    
+    async def get_milestone_candidates(self) -> list[tuple[Customer, int]]:
+        """
+        Get customers who have reached new milestones.
+        
+        Returns:
+            List of (customer, milestone) tuples
+        """
+        all_customers = self.crm.get_all_customers()
+        candidates = []
+        
+        for customer in all_customers:
+            if customer.status != CustomerStatus.ACTIVE:
+                continue
+            
+            total = customer.total_visits
+            milestone = self.get_milestone_for_visits(total)
+            
+            if milestone is None:
+                continue
+            
+            # Check if we already celebrated this milestone
+            already_sent = await self._milestone_already_sent(customer.id, milestone)
+            if already_sent:
+                continue
+            
+            candidates.append((customer, milestone))
+        
+        return candidates
+    
+    async def _milestone_already_sent(self, customer_id: UUID, milestone: int) -> bool:
+        """Check if milestone celebration was already sent."""
+        # Check analytics events for this milestone
+        event = await self.db._analytics_events.find_one({
+            "customer_id": str(customer_id),
+            "event_type": "retention.milestone_celebration",
+            "properties.milestone": milestone,
+        })
+        return event is not None
+    
+    async def send_milestone_celebrations(
+        self,
+        dry_run: bool = False,
+    ) -> list[dict[str, Any]]:
+        """
+        Send milestone celebration messages to eligible customers.
+        
+        Args:
+            dry_run: If True, generate but don't send messages
+            
+        Returns:
+            List of celebration results
+        """
+        candidates = await self.get_milestone_candidates()
+        results = []
+        
+        for customer, milestone in candidates:
+            message = self.generate_milestone_message(customer, milestone)
+            if not message:
+                continue
+            
+            result = {
+                "customer_id": str(customer.id),
+                "customer_name": customer.full_name,
+                "milestone": milestone,
+                "total_visits": customer.total_visits,
+                "message": message,
+                "sent": False,
+            }
+            
+            if not dry_run:
+                conversation = await self.db.get_or_create_conversation(
+                    customer_id=customer.id,
+                    channel=Channel.TELEGRAM,
+                )
+                
+                await self.db.add_message(
+                    conversation_id=conversation.id,
+                    direction=MessageDirection.OUTBOUND,
+                    content=message,
+                    agent_type="proactive_outreach",
+                    metadata={
+                        "outreach_type": "milestone_celebration",
+                        "milestone": milestone,
+                    },
+                )
+                
+                await self.db.track_event(
+                    event_type="retention.milestone_celebration",
+                    customer_id=customer.id,
+                    conversation_id=conversation.id,
+                    properties={
+                        "milestone": milestone,
+                        "total_visits": customer.total_visits,
+                    },
+                )
+                
+                result["sent"] = True
+                print(f"🎉 Sent milestone to {customer.full_name}: {message}")
+            
+            results.append(result)
+        
+        return results
 
 async def run_absence_check_in(days: int = 7, dry_run: bool = False) -> None:
     """CLI helper to run absence check-in batch."""
@@ -350,9 +468,28 @@ async def run_subscription_reminders(days: int = 14, dry_run: bool = False) -> N
             print(f"  {status}: {r['customer_name']} (expires in {r['days_until_expiry']} days)")
 
 
+async def run_milestone_celebrations(dry_run: bool = False) -> None:
+    """CLI helper to run milestone celebration batch."""
+    service = ProactiveOutreachService()
+    
+    print("\n🔍 Looking for milestone achievements...")
+    results = await service.send_milestone_celebrations(dry_run=dry_run)
+    
+    if not results:
+        print("✅ No new milestones reached")
+    else:
+        print(f"\n📊 Results: {len(results)} milestones")
+        for r in results:
+            status = "✅ Sent" if r["sent"] else "⏳ Would send (dry run)"
+            print(f"  {status}: {r['customer_name']} - {r['milestone']} workouts!")
+
+
 # Export
 __all__ = [
     "ProactiveOutreachService",
     "run_absence_check_in",
     "run_subscription_reminders",
+    "run_milestone_celebrations",
+    "MILESTONE_TEMPLATES",
 ]
+
