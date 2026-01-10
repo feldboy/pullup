@@ -6,7 +6,9 @@ Main entry point for the web API and webhooks.
 
 from contextlib import asynccontextmanager
 from typing import Any
+import os
 
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -15,7 +17,6 @@ from gym_agent.config import settings
 from gym_agent.agents.orchestrator import GymAgent
 from gym_agent.services.mongo_crm import get_mongo_crm
 from gym_agent.services.database import get_database
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,17 +67,16 @@ async def health_check() -> dict[str, Any]:
         "status": "healthy",
         "environment": settings.environment.value,
         "version": "0.1.0",
+        "dashboard": "/index.html"
     }
 
+# Mount static files
+# Get absolute path to static directory
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
 
-@app.get("/")
-async def root() -> dict[str, str]:
-    """Root endpoint."""
-    return {
-        "message": f"Welcome to {settings.app_name}",
-        "docs": "/docs",
-        "health": "/health",
-    }
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 # ==================== API Models ====================

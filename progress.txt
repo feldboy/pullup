@@ -21,3 +21,10 @@
 - Added get_customer_conversations to DatabaseService.
 - Verified endpoints with test client.
 ---
+
+## 2026-01-10 - US-003
+- Created static dashboard structure (index.html, style.css, app.js).
+- Implemented Glassmorphism design with responsive sidebar.
+- Mounted static files in main.py.
+- Verified UI via browser subagent.
+---
