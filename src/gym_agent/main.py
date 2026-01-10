@@ -12,6 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from telegram import Bot
+from telegram.error import TelegramError
 
 from gym_agent.config import settings
 from gym_agent.agents.orchestrator import GymAgent
@@ -90,6 +92,12 @@ class MessageResponse(BaseModel):
     escalation_reason: str | None = None
 
 
+class ReplyRequest(BaseModel):
+    """Request model for sending a manual reply."""
+    message: str
+    channel: str = "telegram"
+
+
 # ==================== API Endpoints ====================
 
 @app.post("/api/v1/message", response_model=MessageResponse)
@@ -137,6 +145,63 @@ async def process_message(request: MessageRequest) -> MessageResponse:
         escalate=response.escalate,
         escalation_reason=response.escalation_reason,
     )
+
+
+@app.post("/api/v1/conversations/{customer_id}/reply")
+async def send_reply(customer_id: str, request: ReplyRequest) -> dict[str, Any]:
+    """
+    Send a manual reply to a customer (Human Handoff).
+    """
+    db = app.state.db
+    crm = app.state.crm
+    
+    # 1. Get Customer
+    try:
+        from uuid import UUID
+        cid = UUID(customer_id)
+        customer = await crm.get_customer(cid)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid customer ID")
+        
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+        
+    # 2. Get/Create Active Conversation
+    from gym_agent.models.conversation import Channel, MessageDirection
+    channel = Channel(request.channel)
+    conversation = await db.get_or_create_conversation(cid, channel)
+    
+    # 3. Send via Telegram (if channel is telegram)
+    if channel == Channel.TELEGRAM:
+        if not customer.telegram_id:
+            raise HTTPException(status_code=400, detail="Customer has no Telegram ID")
+            
+        if not settings.telegram_bot_token:
+            raise HTTPException(status_code=500, detail="Telegram token not configured")
+            
+        try:
+            bot = Bot(token=settings.telegram_bot_token)
+            await bot.send_message(
+                chat_id=customer.telegram_id,
+                text=request.message
+            )
+        except TelegramError as e:
+            print(f"Telegram Error: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to send Telegram message: {e}")
+            
+    # 4. Log to DB
+    await db.add_message(
+        conversation_id=conversation.id,
+        direction=MessageDirection.OUTBOUND,
+        content=request.message,
+        agent_type="human_manager"
+    )
+    
+    # 5. Update Conversation Status (Resolve escalation if any)
+    # If it was escalated, maybe mark as active? Or keep escalated?
+    # Usually a human reply means we are handling it.
+    
+    return {"status": "sent", "conversation_id": str(conversation.id)}
 
 
 @app.get("/api/v1/dashboard/stats")

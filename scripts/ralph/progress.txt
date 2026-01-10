@@ -66,3 +66,62 @@
   - Use `get_conversation_history()` method to retrieve past messages
 
 ---
+
+## 2026-01-10 12:45 - US-004, US-006
+
+- What was implemented:
+  - Created `src/gym_agent/services/outreach.py` with ProactiveOutreachService
+  - Absence check-in: get_absent_customers(), send_absence_check_ins()
+  - Subscription reminders: get_expiring_subscriptions(), send_subscription_reminders()
+  - Hebrew message templates for personalization
+  - Rate limiting checks before sending proactive messages
+  - Created `src/gym_agent/cli.py` with CLI commands for outreach
+- Files changed:
+  - `src/gym_agent/services/outreach.py` - Proactive outreach service
+  - `src/gym_agent/cli.py` - CLI tool
+  - `pyproject.toml` - Added gym-cli script entry point
+
+---
+
+## 2026-01-10 12:48 - US-005, US-007
+
+- What was implemented:
+  - Enhanced system prompt with detailed intent examples
+  - 9 intent categories with Hebrew and English keywords
+  - Compound intent handling instructions
+  - Escalation workflow integrated with GymAgent and MongoDB
+- Files changed:
+  - `src/gym_agent/agents/orchestrator.py` - Enhanced system prompt
+
+---
+
+## 2026-01-10 12:50 - US-008, US-009, US-010
+
+- What was implemented:
+  - Milestone celebration: 10, 50, 100, 200 workouts with Hebrew templates
+  - Duplicate prevention via analytics events
+  - Analytics events tracked throughout the system
+  - RateLimiter service with can_send_message() and get_rate_limit_status()
+  - Configurable limits via settings (max_per_hour, max_unanswered, followup_wait_hours)
+- Files changed:
+  - `src/gym_agent/services/outreach.py` - Added milestone celebrations
+  - `src/gym_agent/services/rate_limiter.py` - Rate limiting service
+
+---
+
+## MVP COMPLETE! 🎉
+
+All 10 user stories implemented:
+- US-001: Health Score calculation ✅
+- US-002: MongoDB conversation persistence ✅
+- US-003: Conversation history tracking ✅
+- US-004: Proactive absence check-ins ✅
+- US-005: Intent detection with Hebrew ✅
+- US-006: Subscription expiry alerts ✅
+- US-007: Human escalation workflow ✅
+- US-008: Milestone celebrations ✅
+- US-009: Analytics event tracking ✅
+- US-010: Rate limiting ✅
+
+Tests: 14 passing
+Branch: ralph/gym-ai-mvp

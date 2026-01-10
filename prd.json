@@ -73,6 +73,49 @@
             "priority": 5,
             "passes": true,
             "notes": ""
+        },
+        {
+            "id": "US-006",
+            "title": "CRM Human Handoff Reply",
+            "description": "Allow managers to reply to customers directly from the CRM chat interface.",
+            "acceptanceCriteria": [
+                "Implement POST /api/v1/conversations/{customer_id}/reply endpoint",
+                "Integrate Telegram sending logic in API to deliver message to user",
+                "Log manager replies to database conversation history",
+                "Connect CRM Chat UI 'Send' button to the API",
+                "Browser verification required"
+            ],
+            "priority": 6,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-007",
+            "title": "CRM Analytics Page",
+            "description": "Implement the Analytics view with visual data representation.",
+            "acceptanceCriteria": [
+                "Create Analytics View HTML structure",
+                "Implement /api/v1/analytics endpoint (or extend stats)",
+                "Render stats: Member distribution, Activity trends, Risk analysis",
+                "Browser verification required"
+            ],
+            "priority": 7,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-008",
+            "title": "CRM Settings Page",
+            "description": "Implement the Settings view for system configuration.",
+            "acceptanceCriteria": [
+                "Create Settings View HTML structure",
+                "Display current system configuration (env vars, version)",
+                "Allow toggling 'Maintenance Mode' (soft toggle in app state)",
+                "Browser verification required"
+            ],
+            "priority": 8,
+            "passes": true,
+            "notes": ""
         }
     ]
 }

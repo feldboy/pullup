@@ -68,6 +68,12 @@ const app = {
             case 'customers':
                 await this.loadCustomers();
                 break;
+            case 'analytics':
+                await this.loadAnalytics();
+                break;
+            case 'settings':
+                await this.loadSettings();
+                break;
         }
     },
 
@@ -143,6 +149,47 @@ const app = {
         } catch (e) {
             console.error("Failed to load detail:", e);
         }
+    },
+
+    loadAnalytics: async function () {
+        const statusChart = document.getElementById('status-chart');
+        const membershipChart = document.getElementById('membership-chart');
+
+        try {
+            const response = await fetch(`${API_BASE}/dashboard/stats`);
+            const data = await response.json();
+
+            this.renderChart(statusChart, data.distributions?.status || {});
+            this.renderChart(membershipChart, data.distributions?.membership || {});
+        } catch (e) {
+            console.error(e);
+            statusChart.innerHTML = 'Error loading data';
+        }
+    },
+
+    loadSettings: async function () {
+        // Mock loading settings
+        document.getElementById('env-badge').innerText = 'DEV'; // In real app, fetch from API
+    },
+
+    renderChart: function (container, data) {
+        if (!container) return;
+
+        // Convert to array and sort
+        const items = Object.entries(data).sort((a, b) => b[1] - a[1]);
+        const max = Math.max(...Object.values(data), 1);
+
+        container.innerHTML = items.map(([label, value]) => `
+            <div style="margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:4px">
+                    <span>${this.translateStatus(label)}</span>
+                    <span>${value}</span>
+                </div>
+                <div style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">
+                    <div style="width:${(value / max) * 100}%;height:100%;background:var(--accent-color)"></div>
+                </div>
+            </div>
+        `).join('');
     },
 
     // Rendering
@@ -271,7 +318,13 @@ const app = {
     renderChatHistory: function (conversations) {
         const container = document.querySelector('#view-customer-detail .chat-card');
         if (!conversations || conversations.length === 0) {
-            container.innerHTML = '<div style="padding:20px;text-align:center">אין היסטורית שיחות</div>';
+            container.innerHTML = `
+                <div style="padding:20px;text-align:center">אין היסטורית שיחות</div>
+                <div class="chat-input" style="padding:15px;border-top:1px solid var(--glass-border);display:flex;gap:10px;margin-top:auto">
+                    <input type="text" id="chat-input-text" placeholder="התחל שיחה..." style="flex:1;background:rgba(0,0,0,0.2);border:none;padding:10px;border-radius:8px;color:white">
+                    <button class="btn-primary" onclick="app.handleSendReply()" style="background:var(--accent-color);border:none;width:40px;border-radius:8px;cursor:pointer"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            `;
             return;
         }
 
@@ -283,7 +336,7 @@ const app = {
                 <h3>שיחה פעילה</h3>
                 <span class="status-dot ${activeConv.status}"></span>
             </div>
-            <div class="messages" style="height:400px;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:15px">
+            <div class="messages" id="chat-messages" style="height:400px;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:15px">
                 ${activeConv.messages.map(m => `
                     <div class="message ${m.direction}" style="
                         align-self: ${m.direction === 'outbound' ? 'flex-start' : 'flex-end'};
@@ -302,10 +355,66 @@ const app = {
                 `).join('')}
             </div>
             <div class="chat-input" style="padding:15px;border-top:1px solid var(--glass-border);display:flex;gap:10px">
-                <input type="text" placeholder="הקלד הודעה..." style="flex:1;background:rgba(0,0,0,0.2);border:none;padding:10px;border-radius:8px;color:white">
-                <button class="btn-primary" style="background:var(--accent-color);border:none;width:40px;border-radius:8px;cursor:pointer"><i class="fas fa-paper-plane"></i></button>
+                <input type="text" id="chat-input-text" placeholder="הקלד הודעה..." style="flex:1;background:rgba(0,0,0,0.2);border:none;padding:10px;border-radius:8px;color:white" onkeypress="if(event.key==='Enter') app.handleSendReply()">
+                <button class="btn-primary" onclick="app.handleSendReply()" style="background:var(--accent-color);border:none;width:40px;border-radius:8px;cursor:pointer"><i class="fas fa-paper-plane"></i></button>
             </div>
         `;
+
+        // Scroll to bottom
+        const messagesDiv = document.getElementById('chat-messages');
+        if (messagesDiv) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    },
+
+    handleSendReply: async function () {
+        if (!this.state.currentCustomer) return;
+
+        const input = document.getElementById('chat-input-text');
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Optimistic UI update (optional, but let's wait for success)
+        input.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/conversations/${this.state.currentCustomer.id}/reply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, channel: 'telegram' })
+            });
+
+            if (!res.ok) throw new Error('Failed to send');
+
+            // Append message
+            const messagesDiv = document.getElementById('chat-messages');
+            if (messagesDiv) {
+                const now = new Date();
+                messagesDiv.innerHTML += `
+                    <div class="message outbound" style="
+                        align-self: flex-start;
+                        background: rgba(255,255,255,0.1);
+                        padding: 10px 14px;
+                        border-radius: 12px;
+                        max-width: 70%;
+                        border-top-right-radius:2px;
+                    ">
+                        <div class="msg-content">${message}</div>
+                        <div class="msg-meta" style="font-size:0.7rem;opacity:0.7;margin-top:4px;text-align:left">
+                            ${now.toLocaleTimeString()} • human
+                        </div>
+                    </div>
+                `;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            input.value = '';
+        } catch (e) {
+            console.error(e);
+            alert('שגיאה בשליחת הודעה: ' + e.message);
+        } finally {
+            input.disabled = false;
+            input.focus();
+        }
     },
 
     // Helpers

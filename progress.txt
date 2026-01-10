@@ -40,3 +40,15 @@
 - Added verification script for admin commands.
 - Verified functionalities locally.
 ---
+## Sat Jan 10 17:06:03 IST 2026 - US-006
+- Implemented 'CRM Human Handoff Reply'
+- Backend: Added POST /reply endpoint with Telegram integration
+- Frontend: Connected Chat Send button
+- Learnings: Telegram Bot API is needed for outbound
+---
+## Sat Jan 10 17:07:49 IST 2026 - US-007 & US-008
+- Implemented 'CRM Analytics & Settings'
+- Backend: Updated get_stats to return aggregated distributions
+- Frontend: Added Analytics and Settings views, charts logic, and routing
+- UX: Glassmorphism layout extended to new pages
+---

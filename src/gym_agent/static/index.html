@@ -168,6 +168,59 @@
                         </div>
                      </div>
                 </div>
+
+                <!-- Analytics View -->
+                <div class="view" id="view-analytics">
+                    <h1 class="page-title">אנליטיקס</h1>
+                    <div class="content-grid two-columns">
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>התפלגות לקוחות</h2>
+                            </div>
+                            <div class="chart-container" id="status-chart">
+                                <!-- Bars populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>סוגי מנויים</h2>
+                            </div>
+                            <div class="chart-container" id="membership-chart">
+                                <!-- Bars populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div class="view" id="view-settings">
+                    <h1 class="page-title">הגדרות מערכת</h1>
+                    <div class="section-card glass">
+                        <div class="setting-group">
+                            <h3>סטטוס מערכת</h3>
+                            <div class="setting-item">
+                                <label>מצב תחזוקה</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="maintenance-toggle">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>סביבה</label>
+                                <div class="badge" id="env-badge">DEV</div>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>בוט</h3>
+                            <div class="setting-item">
+                                <label>מזהה מנהל (Telegram ID)</label>
+                                <input type="text" value="1082780340" readonly class="glass-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

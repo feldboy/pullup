@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     
     # Telegram
     telegram_bot_token: str = ""
+    manager_telegram_id: int = 1082780340  # Default to Yaron's ID
     
     # WhatsApp (Phase 2)
     whatsapp_access_token: str = ""

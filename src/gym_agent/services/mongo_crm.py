@@ -182,17 +182,30 @@ class MongoCRMService:
         # In real world, we'd count visits in last 24h from a visits collection.
         # Here we just return static or calculated from customers if possible.
         
+        # Aggregations for Analytics
+        pipeline_status = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        status_counts = await self._customers.aggregate(pipeline_status).to_list(length=None)
+        status_dist = {item["_id"]: item["count"] for item in status_counts}
+        
+        pipeline_membership = [{"$group": {"_id": "$membership_type", "count": {"$sum": 1}}}]
+        membership_counts = await self._customers.aggregate(pipeline_membership).to_list(length=None)
+        membership_dist = {item["_id"]: item["count"] for item in membership_counts}
+
         return {
             "total_customers": total_customers,
             "active_customers": active_customers,
             "at_risk_customers": at_risk,
             "new_this_month": 0, # Placeholder
             "visits_today": 0,   # Placeholder
+            "distributions": {
+                "status": status_dist,
+                "membership": membership_dist
+            }
         }
 
     # ==================== Test Utilities ====================
     
-    def add_test_customer(self, telegram_id: int, first_name: str, **kwargs: Any) -> Customer:
+    async def add_test_customer(self, telegram_id: int, first_name: str, **kwargs: Any) -> Customer:
         """Add a customer for testing purposes."""
         # This is synchronous in the interface but we need async for Mongo usually.
         # However, MockCRM was sync.
@@ -215,7 +228,44 @@ class MongoCRMService:
         # And I must update orchestrator.py to await it.
         
         # For now, let's implement validation first.
-        raise NotImplementedError("Use seed_db.py for Mongo data, or implement async add_test_customer and update orchestrator")
+        # Check if exists
+        existing = await self.get_customer_by_telegram(telegram_id)
+        if existing:
+            return existing
+            
+        new_id = uuid4()
+        now = datetime.now()
+        
+        customer_data = {
+            "_id": str(new_id),
+            "id": str(new_id), # Legacy support
+            "crm_id": f"TEST-{telegram_id}",
+            "telegram_id": telegram_id,
+            "first_name": first_name,
+            "last_name": kwargs.get("last_name", "TestUser"),
+            "phone": kwargs.get("phone", f"000-{telegram_id}"),
+            "email": kwargs.get("email"),
+            "status": CustomerStatus.ACTIVE.value,
+            "membership_type": MembershipType.MONTHLY.value,
+            "membership_start_date": kwargs.get("membership_start_date", now.date().isoformat()),
+            "membership_end_date": kwargs.get("membership_end_date", (now.date() + timedelta(days=30)).isoformat()),
+            "last_visit": now.isoformat(),
+            "total_visits": 0,
+            "health_score": 100,
+            "preferred_classes": [],
+            "preferred_language": "he",
+            "created_at": now,
+        }
+        
+        await self._customers.insert_one(customer_data)
+        
+        # Verify and return via pydantic
+        # Since get_customer is async, we await it
+        result = await self.get_customer(new_id)
+        if result:
+            return result
+        # Fallback manual conversion if get fails immediately (latency)
+        return self._dict_to_customer(customer_data)
 
     # ==================== Helpers ====================
 

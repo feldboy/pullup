@@ -481,7 +481,7 @@ class GymAgent:
         first_name: str,
     ) -> Customer:
         """Create a test customer for development."""
-        return self.crm.add_test_customer(
+        return await self.crm.add_test_customer(
             telegram_id=telegram_id,
             first_name=first_name,
         )
