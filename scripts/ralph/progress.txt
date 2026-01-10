@@ -47,3 +47,22 @@
 
 ---
 
+## 2026-01-10 12:38 - US-003
+
+- What was implemented:
+  - Integrated MongoDB DatabaseService with GymAgent class
+  - Automatic conversation creation/retrieval per customer and channel
+  - Store incoming and outgoing messages with intent and sentiment
+  - Load last 10 messages for context when processing new messages
+  - Automatic analytics event tracking for each message
+  - Automatic escalation creation when agent requests it
+  - Changed default LLM to Gemini 2.5 Flash per user request
+- Files changed:
+  - `src/gym_agent/agents/orchestrator.py` - Integrated database service
+  - `src/gym_agent/config.py` - Changed default to Gemini 2.5 Flash
+- **Learnings for future iterations:**
+  - GymAgent now automatically persists all conversations to MongoDB
+  - The `process_message` method handles full conversation lifecycle
+  - Use `get_conversation_history()` method to retrieve past messages
+
+---
