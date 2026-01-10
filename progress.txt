@@ -34,3 +34,9 @@
 - Fixed API 404 error by moving static mount to end of main.py.
 - Verified API reachability manually.
 ---
+
+## 2026-01-10 - US-005
+- Implemented admin commands (/stats, /risk) in Orchestrator.
+- Added verification script for admin commands.
+- Verified functionalities locally.
+---

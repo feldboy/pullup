@@ -347,6 +347,50 @@ class GymAgent:
         Returns:
             AgentResponse with message, intent, sentiment, etc.
         """
+        # Helper to check if message is a command from manager
+        is_admin = False
+        if customer.telegram_id == settings.manager_telegram_id:
+            is_admin = True
+            
+        if is_admin and message.startswith("/"):
+            command = message.lower().strip()
+            
+            if command == "/stats":
+                stats = await self.crm.get_stats()
+                response_text = (
+                    "📊 *Gym Stats*\n\n"
+                    f"👥 Total Members: {stats.get('total_customers', 0)}\n"
+                    f"✅ Active: {stats.get('active_customers', 0)}\n"
+                    f"⚠️ At Risk: {stats.get('at_risk_customers', 0)}\n"
+                )
+                return AgentResponse(
+                    message=response_text,
+                    intent=Intent.QUESTION, # Or GENERIC
+                    sentiment=0.0,
+                    escalate=False
+                )
+            
+            elif command == "/risk":
+                from gym_agent.models.customer import CustomerStatus
+                risk_customers = await self.crm.search_customers(status=CustomerStatus.AT_RISK)
+                
+                if not risk_customers:
+                    response_text = "🎉 No customers currently at risk!"
+                else:
+                    response_text = "⚠️ *At Risk Customers:*\n\n"
+                    for c in risk_customers[:10]: # Limit to 10
+                         response_text += f"• {c.full_name} ({c.health_score})\n"
+                    
+                    if len(risk_customers) > 10:
+                        response_text += f"\n...and {len(risk_customers) - 10} more."
+                
+                return AgentResponse(
+                    message=response_text,
+                    intent=Intent.QUESTION,
+                    sentiment=0.0,
+                    escalate=False
+                )
+
         # Get or create conversation
         conversation = await self.db.get_or_create_conversation(
             customer_id=customer.id,
