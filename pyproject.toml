@@ -54,6 +54,7 @@ dev = [
 [project.scripts]
 gym-agent = "gym_agent.main:main"
 telegram-bot = "gym_agent.channels.telegram_bot:main"
+gym-cli = "gym_agent.cli:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -64,8 +64,8 @@
                 "Typecheck passes"
             ],
             "priority": 4,
-            "passes": false,
-            "notes": "This is the core retention feature"
+            "passes": true,
+            "notes": "Created ProactiveOutreachService with Hebrew templates and CLI command."
         },
         {
             "id": "US-005",
@@ -95,8 +95,8 @@
                 "Typecheck passes"
             ],
             "priority": 6,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Implemented in ProactiveOutreachService with Hebrew templates."
         },
         {
             "id": "US-007",
