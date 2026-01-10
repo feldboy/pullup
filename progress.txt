@@ -1,0 +1,54 @@
+## Codebase Patterns
+- Use `settings` from `gym_agent.config` for configuration.
+- Use `AsyncIOMotorClient` for MongoDB interactions.
+- Pydantic models are in `gym_agent.models`.
+- API endpoints are in `gym_agent.main`.
+
+
+## 2026-01-10 - US-001
+- Implemented MongoCRMService to replace MockCRMService.
+- Updated main.py and orchestrator.py to use real DB connection.
+- Fixed SyntaxError in database.py.
+- **Learnings:**
+  - database.py seems to have some non-async methods with await in previous versions or corruption? Verified fixed.
+  - mock_crm.py is broken/corrupt; removed from __init__.
+  - Use .venv/bin/python for running scripts.
+---
+
+## 2026-01-10 - US-002
+- Implemented CRM API endpoints in main.py.
+- Added get_stats to MongoCRMService.
+- Added get_customer_conversations to DatabaseService.
+- Verified endpoints with test client.
+---
+
+## 2026-01-10 - US-003
+- Created static dashboard structure (index.html, style.css, app.js).
+- Implemented Glassmorphism design with responsive sidebar.
+- Mounted static files in main.py.
+- Verified UI via browser subagent.
+---
+
+## 2026-01-10 - US-004
+- Implemented app.js for fetching/rendering CRM data.
+- Fixed API 404 error by moving static mount to end of main.py.
+- Verified API reachability manually.
+---
+
+## 2026-01-10 - US-005
+- Implemented admin commands (/stats, /risk) in Orchestrator.
+- Added verification script for admin commands.
+- Verified functionalities locally.
+---
+## Sat Jan 10 17:06:03 IST 2026 - US-006
+- Implemented 'CRM Human Handoff Reply'
+- Backend: Added POST /reply endpoint with Telegram integration
+- Frontend: Connected Chat Send button
+- Learnings: Telegram Bot API is needed for outbound
+---
+## Sat Jan 10 17:07:49 IST 2026 - US-007 & US-008
+- Implemented 'CRM Analytics & Settings'
+- Backend: Updated get_stats to return aggregated distributions
+- Frontend: Added Analytics and Settings views, charts logic, and routing
+- UX: Glassmorphism layout extended to new pages
+---

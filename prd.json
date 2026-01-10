@@ -1,0 +1,121 @@
+{
+    "project": "Ralph CRM",
+    "branchName": "ralph/crm-revival",
+    "description": "Revive Ralph with a real MongoDB backend and a premium CRM dashboard.",
+    "userStories": [
+        {
+            "id": "US-001",
+            "title": "Implement MongoCRMService",
+            "description": "Replace MockCRMService with a real MongoDB implementation using the seeded data.",
+            "acceptanceCriteria": [
+                "Implement MongoCRMService class matching MockCRMService interface",
+                "Implement get_customer, get_visit_count, calculate_health_score using Motor",
+                "Ensure seed_db.py data is queryable by the service",
+                "Typecheck passes"
+            ],
+            "priority": 1,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-002",
+            "title": "CRM API Endpoints",
+            "description": "Expose CRM data via FastAPI endpoints for the dashboard.",
+            "acceptanceCriteria": [
+                "GET /api/v1/conversations/{customer_id} - Return chat history",
+                "GET /api/v1/dashboard/stats - Return aggregate stats (total members, at risk, etc.)",
+                "Search functionality in list_customers endpoint (by name/phone)",
+                "Typecheck passes"
+            ],
+            "priority": 2,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-003",
+            "title": "CRM Dashboard Structure & Design",
+            "description": "Create the HTML/CSS foundation for the Premium CRM Dashboard.",
+            "acceptanceCriteria": [
+                "Glassmorphism design implementation",
+                "Responsive layout (Sidebar + Main Content)",
+                "Customers List View (Skeleton)",
+                "Customer Detail View (Skeleton)",
+                "Browser verification required"
+            ],
+            "priority": 3,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-004",
+            "title": "Connect Dashboard to API",
+            "description": "Implement JS logic to fetch and display real data in the dashboard.",
+            "acceptanceCriteria": [
+                "Fetch and render Customers List",
+                "Fetch and render Customer Details + Chat History",
+                "Implement Search functionality",
+                "Browser verification required"
+            ],
+            "priority": 4,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-005",
+            "title": "Bot Admin Features",
+            "description": "Add admin capabilities to the Telegram bot.",
+            "acceptanceCriteria": [
+                "Detect if sender is an admin",
+                "Implement 'Stats' command/intent",
+                "Implement 'Who is at risk?' command/intent",
+                "Typecheck passes"
+            ],
+            "priority": 5,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-006",
+            "title": "CRM Human Handoff Reply",
+            "description": "Allow managers to reply to customers directly from the CRM chat interface.",
+            "acceptanceCriteria": [
+                "Implement POST /api/v1/conversations/{customer_id}/reply endpoint",
+                "Integrate Telegram sending logic in API to deliver message to user",
+                "Log manager replies to database conversation history",
+                "Connect CRM Chat UI 'Send' button to the API",
+                "Browser verification required"
+            ],
+            "priority": 6,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-007",
+            "title": "CRM Analytics Page",
+            "description": "Implement the Analytics view with visual data representation.",
+            "acceptanceCriteria": [
+                "Create Analytics View HTML structure",
+                "Implement /api/v1/analytics endpoint (or extend stats)",
+                "Render stats: Member distribution, Activity trends, Risk analysis",
+                "Browser verification required"
+            ],
+            "priority": 7,
+            "passes": true,
+            "notes": ""
+        },
+        {
+            "id": "US-008",
+            "title": "CRM Settings Page",
+            "description": "Implement the Settings view for system configuration.",
+            "acceptanceCriteria": [
+                "Create Settings View HTML structure",
+                "Display current system configuration (env vars, version)",
+                "Allow toggling 'Maintenance Mode' (soft toggle in app state)",
+                "Browser verification required"
+            ],
+            "priority": 8,
+            "passes": true,
+            "notes": ""
+        }
+    ]
+}

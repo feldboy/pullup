@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     google_api_key: str = ""
     openrouter_api_key: str = ""
-    default_llm_provider: LLMProvider = LLMProvider.OPENAI
-    default_model: str = "gpt-4o"
+    default_llm_provider: LLMProvider = LLMProvider.GEMINI
+    default_model: str = "gemini-2.5-flash"
     
     # Supabase
     supabase_url: str = ""
@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     
     # Telegram
     telegram_bot_token: str = ""
+    manager_telegram_id: int = 1082780340  # Default to Yaron's ID
     
     # WhatsApp (Phase 2)
     whatsapp_access_token: str = ""

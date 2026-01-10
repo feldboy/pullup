@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ralph CRM - GymAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="logo">
+                <i class="fas fa-dumbbell"></i>
+                <span>Ralph CRM</span>
+            </div>
+            
+            <nav>
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>דשבורד</span>
+                </a>
+                <a href="#" class="nav-item" data-view="customers">
+                    <i class="fas fa-users"></i>
+                    <span>לקוחות</span>
+                </a>
+                <a href="#" class="nav-item" data-view="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>אנליטיקס</span>
+                </a>
+                <a href="#" class="nav-item" data-view="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>הגדרות</span>
+                </a>
+            </nav>
+            
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="info">
+                    <span class="name">Ralph AI</span>
+                    <span class="role">Admin Agent</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar glass">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="חיפוש לקוח (שם, טלפון)..." id="global-search">
+                </div>
+                
+                <div class="actions">
+                    <button class="icon-btn notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="status-indicator online">
+                        <span class="dot"></span>
+                        מחובר למונגו
+                    </div>
+                </div>
+            </header>
+
+            <!-- Views Container -->
+            <div id="views-container">
+                <!-- Dashboard View (Dynamic Content) -->
+                <div class="view active" id="view-dashboard">
+                    <h1 class="page-title">סקירה כללית</h1>
+                    
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card glass" id="stat-total">
+                            <i class="fas fa-users icon-bg"></i>
+                            <div class="value" data-stat="total_customers">-</div>
+                            <div class="label">סה"כ לקוחות</div>
+                        </div>
+                        <div class="stat-card glass" id="stat-active">
+                            <i class="fas fa-check-circle icon-bg"></i>
+                            <div class="value" data-stat="active_customers">-</div>
+                            <div class="label">פעילים</div>
+                        </div>
+                        <div class="stat-card glass warning" id="stat-risk">
+                            <i class="fas fa-exclamation-triangle icon-bg"></i>
+                            <div class="value" data-stat="at_risk_customers">-</div>
+                            <div class="label">בסיכון</div>
+                        </div>
+                        <div class="stat-card glass" id="stat-visits">
+                            <i class="fas fa-walking icon-bg"></i>
+                            <div class="value" data-stat="visits_today">-</div>
+                            <div class="label">ביקורים היום</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity / Customer List Preview -->
+                    <div class="content-grid two-columns">
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>לקוחות בסיכון גבוה</h2>
+                                <button class="btn-text">הצג הכל</button>
+                            </div>
+                            <div class="list-container" id="risk-list">
+                                <!-- Populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                        
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>שיחות אחרונות</h2>
+                            </div>
+                            <div class="list-container" id="recent-chats">
+                                <!-- Populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers View -->
+                <div class="view" id="view-customers">
+                    <h1 class="page-title">ניהול לקוחות</h1>
+                    <div class="section-card glass full-height custom-scroll">
+                        <div class="table-actions">
+                            <div class="filters">
+                                <select class="glass-input">
+                                    <option value="all">כל הסטטוסים</option>
+                                    <option value="active">פעיל</option>
+                                    <option value="at_risk">בסיכון</option>
+                                    <option value="inactive">לא פעיל</option>
+                                </select>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>שם</th>
+                                    <th>סטטוס</th>
+                                    <th>ציון בריאות</th>
+                                    <th>ביקור אחרון</th>
+                                    <th>מנוי</th>
+                                    <th>פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Customer Detail + Chat View (Hidden by default) -->
+                <div class="view" id="view-customer-detail">
+                     <!-- Detail content loaded dynamically -->
+                     <button class="btn-back" onclick="app.navigate('customers')"><i class="fas fa-arrow-right"></i> חזרה</button>
+                     <div class="customer-layout">
+                        <div class="profile-card glass">
+                            <!-- Info -->
+                        </div>
+                        <div class="chat-card glass">
+                            <!-- Chat History -->
+                        </div>
+                     </div>
+                </div>
+
+                <!-- Analytics View -->
+                <div class="view" id="view-analytics">
+                    <h1 class="page-title">אנליטיקס</h1>
+                    <div class="content-grid two-columns">
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>התפלגות לקוחות</h2>
+                            </div>
+                            <div class="chart-container" id="status-chart">
+                                <!-- Bars populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                        <div class="section-card glass custom-scroll">
+                            <div class="card-header">
+                                <h2>סוגי מנויים</h2>
+                            </div>
+                            <div class="chart-container" id="membership-chart">
+                                <!-- Bars populated by JS -->
+                                <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div class="view" id="view-settings">
+                    <h1 class="page-title">הגדרות מערכת</h1>
+                    <div class="section-card glass">
+                        <div class="setting-group">
+                            <h3>סטטוס מערכת</h3>
+                            <div class="setting-item">
+                                <label>מצב תחזוקה</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="maintenance-toggle">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>סביבה</label>
+                                <div class="badge" id="env-badge">DEV</div>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <h3>בוט</h3>
+                            <div class="setting-item">
+                                <label>מזהה מנהל (Telegram ID)</label>
+                                <input type="text" value="1082780340" readonly class="glass-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

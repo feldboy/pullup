@@ -155,7 +155,7 @@ class RAGService:
             # Location
             ("איפה", "מיקום", "כתובת", "location", "where", "address"): "about",
             # Services/Classes
-            ("שיעורים", "אימונים", "שיעור", "classes", "workout", "training"): "services",
+            ("שיעורים", "אימונים", "שיעור", "classes", "workout", "training", "חוגים", "חוג", "איזה יש", "מה יש"): "services",
             ("פילאטיס", "pilates"): ("services", "pilates"),
             ("יוגה", "yoga"): ("services", "yoga"),
             ("פונקציונלי", "functional"): ("services", "functional_training"),
@@ -163,7 +163,7 @@ class RAGService:
             ("קרבי", "צבא", "combat", "army", "military"): ("services", "combat_fitness"),
             ("open gym", "אימון חופשי", "משקולות"): ("services", "open_gym"),
             # Memberships
-            ("מנוי", "מחיר", "עלות", "membership", "price", "cost", "plan"): "memberships",
+            ("מנוי", "מחיר", "עלות", "membership", "price", "cost", "plan", "כמה עולה"): "memberships",
             # Policies
             ("ביטול", "cancel", "לבטל"): "policies",
             ("הזמנה", "רישום", "להירשם", "book", "register", "sign up"): "policies",

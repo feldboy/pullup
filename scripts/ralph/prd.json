@@ -1,0 +1,165 @@
+{
+    "project": "GymAI Agent",
+    "branchName": "ralph/gym-ai-mvp",
+    "description": "GymAI Agent MVP - Intelligent AI Agent for Gym Customer Communication & Retention",
+    "userStories": [
+        {
+            "id": "US-001",
+            "title": "Add Health Score calculation",
+            "description": "As a gym owner, I need the system to calculate a Health Score (1-100) for each customer based on their activity patterns so I can identify at-risk members.",
+            "acceptanceCriteria": [
+                "Create a HealthScore model in src/gym_agent/models/ with frequency_score, trend_score, recency_score, and expiry_score fields",
+                "Implement calculate_health_score function with weights: frequency(30%), trend(25%), recency(25%), expiry(20%)",
+                "Score < 50: Critical, 50-70: At-risk, > 70: Healthy",
+                "Add health score calculation to MockCRM service",
+                "Typecheck passes (mypy)",
+                "Unit tests pass"
+            ],
+            "priority": 1,
+            "passes": true,
+            "notes": "Already implemented in customer.py and mock_crm.py. Fixed type annotations."
+        },
+        {
+            "id": "US-002",
+            "title": "Add conversation persistence with MongoDB",
+            "description": "As a developer, I need to store conversations and messages in a database so the agent can maintain context across sessions.",
+            "acceptanceCriteria": [
+                "Create MongoDB connection and collections for conversations and messages",
+                "Add database initialization in src/gym_agent/services/database.py",
+                "Store conversation_id, customer_id, channel, status, timestamps",
+                "Store messages with direction, content, intent, sentiment",
+                "Typecheck passes",
+                "Unit tests pass"
+            ],
+            "priority": 2,
+            "passes": true,
+            "notes": "Implemented DatabaseService with motor async driver. 7 unit tests passing."
+        },
+        {
+            "id": "US-003",
+            "title": "Implement conversation history tracking",
+            "description": "As a customer, I want the agent to remember my previous messages in this conversation so I don't have to repeat myself.",
+            "acceptanceCriteria": [
+                "Integrate database service with GymAgent class",
+                "Load last 10 messages when processing a new message",
+                "Pass conversation history to the LLM for context",
+                "Store each message and response in the database",
+                "Typecheck passes",
+                "Test conversation continuity in Telegram bot"
+            ],
+            "priority": 3,
+            "passes": true,
+            "notes": "Integrated MongoDB with GymAgent. Messages automatically stored and loaded. Changed default LLM to Gemini 2.5 Flash."
+        },
+        {
+            "id": "US-004",
+            "title": "Add proactive absence check-in trigger",
+            "description": "As a gym owner, I want the system to automatically send a check-in message to members who haven't visited in 7+ days.",
+            "acceptanceCriteria": [
+                "Create ProactiveOutreach service in src/gym_agent/services/outreach.py",
+                "Implement get_absent_customers() returning customers with 7+ days since last visit",
+                "Generate personalized check-in messages using the agent",
+                "Add CLI command to trigger absence check-in batch",
+                "Respect MAX_UNANSWERED_MESSAGES = 2 limit",
+                "Typecheck passes"
+            ],
+            "priority": 4,
+            "passes": true,
+            "notes": "Created ProactiveOutreachService with Hebrew templates and CLI command."
+        },
+        {
+            "id": "US-005",
+            "title": "Improve intent detection accuracy",
+            "description": "As an agent, I need to accurately detect customer intents so I can provide appropriate responses.",
+            "acceptanceCriteria": [
+                "Add example prompts for each Intent type to system prompt",
+                "Add detection for compound intents (e.g., question + time_constraint)",
+                "Improve Hebrew intent detection with language-specific keywords",
+                "Add confidence score to intent detection",
+                "Test with at least 10 sample messages per intent type",
+                "Typecheck passes"
+            ],
+            "priority": 5,
+            "passes": true,
+            "notes": "Enhanced system prompt with detailed Hebrew/English examples for all 9 intent types plus compound intent handling."
+        },
+        {
+            "id": "US-006",
+            "title": "Add subscription expiry alerts",
+            "description": "As a gym owner, I want to notify members 14 days before their subscription expires so they can renew on time.",
+            "acceptanceCriteria": [
+                "Add get_expiring_subscriptions(days=14) to MockCRM service",
+                "Create subscription reminder message template",
+                "Add subscription check to ProactiveOutreach service",
+                "Add CLI command to trigger subscription reminders",
+                "Typecheck passes"
+            ],
+            "priority": 6,
+            "passes": true,
+            "notes": "Implemented in ProactiveOutreachService with Hebrew templates."
+        },
+        {
+            "id": "US-007",
+            "title": "Add human escalation workflow",
+            "description": "As a customer with a complex issue, I want to be connected to a human representative when the AI can't help.",
+            "acceptanceCriteria": [
+                "Create Escalation model with reason, priority, status, assigned_to fields",
+                "Store escalations in database",
+                "Add notification mechanism (print to console for MVP)",
+                "Auto-escalate on complaint detection or customer request",
+                "Add escalation summary with conversation context",
+                "Typecheck passes"
+            ],
+            "priority": 7,
+            "passes": true,
+            "notes": "Escalation model in conversation.py, stored in MongoDB, auto-triggered in GymAgent when escalate=True."
+        },
+        {
+            "id": "US-008",
+            "title": "Add milestone celebration messages",
+            "description": "As a member, I want to receive congratulations when I reach workout milestones so I feel appreciated.",
+            "acceptanceCriteria": [
+                "Track milestone achievements: 10th, 50th, 100th, 200th workout",
+                "Generate celebratory messages with member's name",
+                "Add milestone detection to customer activity tracking",
+                "Prevent duplicate milestone notifications",
+                "Typecheck passes"
+            ],
+            "priority": 8,
+            "passes": true,
+            "notes": "Implemented in ProactiveOutreachService with Hebrew templates. Prevents duplicates via analytics events."
+        },
+        {
+            "id": "US-009",
+            "title": "Add analytics event tracking",
+            "description": "As a gym owner, I want to track conversation and retention events so I can measure the agent's effectiveness.",
+            "acceptanceCriteria": [
+                "Create analytics_events table in database",
+                "Track events: conversation.started, message_sent, message_received, resolved, escalated",
+                "Track retention events: outreach_sent, customer_returned",
+                "Add track_event() utility function",
+                "Add simple event summary endpoint to API",
+                "Typecheck passes"
+            ],
+            "priority": 9,
+            "passes": true,
+            "notes": "track_event() in DatabaseService. Events tracked throughout GymAgent and OutreachService."
+        },
+        {
+            "id": "US-010",
+            "title": "Add response rate limiting",
+            "description": "As a customer, I don't want to receive too many messages from the gym so I don't feel spammed.",
+            "acceptanceCriteria": [
+                "Implement per-customer message rate limiting",
+                "Max 10 messages per hour per customer",
+                "Max 2 unanswered proactive messages before stopping",
+                "48-hour wait before follow-up if no response",
+                "Store rate limit state in database",
+                "Typecheck passes"
+            ],
+            "priority": 10,
+            "passes": true,
+            "notes": "RateLimiter service with can_send_message() and get_rate_limit_status(). Settings configurable."
+        }
+    ]
+}

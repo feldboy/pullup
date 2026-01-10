@@ -1,11 +1,12 @@
 """Services package for GymAI Agent."""
 
 from gym_agent.services.llm import LLMService, get_llm_service
-from gym_agent.services.mock_crm import MockCRMService, get_mock_crm
+from gym_agent.services.mongo_crm import MongoCRMService, get_mongo_crm
+# MockCRMService removed/deprecated
 
 __all__ = [
     "LLMService",
     "get_llm_service",
-    "MockCRMService",
-    "get_mock_crm",
+    "MongoCRMService",
+    "get_mongo_crm",
 ]

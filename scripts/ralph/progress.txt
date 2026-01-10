@@ -1,0 +1,127 @@
+## Codebase Patterns
+- Use `pydantic_ai` framework for all agents
+- Models go in `src/gym_agent/models/`
+- Services go in `src/gym_agent/services/`
+- Agents go in `src/gym_agent/agents/`
+- Use Hebrew for customer-facing messages
+- Run `mypy src/` for type checking
+- Run `pytest tests/` for tests
+- The main FastAPI app is in `src/gym_agent/main.py`
+- The gym knowledge base is hardcoded in `rag.py` under `ELOOZFIT_KNOWLEDGE`
+- For testing, use the Telegram bot with polling mode
+
+---
+
+## 2026-01-10 12:30 - US-001
+
+- What was implemented:
+  - Verified existing HealthScore model in `src/gym_agent/models/customer.py`
+  - Verified `calculate_health_score` function in `src/gym_agent/services/mock_crm.py`
+  - Fixed type annotations using `cast()` for type safety
+- Files changed:
+  - `src/gym_agent/services/mock_crm.py` - Added type annotations
+  - `scripts/ralph/prd.json` - Created PRD with 10 user stories
+  - `scripts/ralph/progress.txt` - Created with codebase patterns
+- **Learnings for future iterations:**
+  - HealthScore already existed - check existing code before implementing
+  - Use `cast()` from typing instead of type: ignore comments for better type safety
+  - The project already has good test coverage with pytest
+
+---
+
+## 2026-01-10 12:35 - US-002
+
+- What was implemented:
+  - Created `src/gym_agent/services/database.py` with MongoDB async support using motor
+  - Full CRUD operations for conversations, messages, escalations, and analytics events
+  - Proper conversion between Pydantic models and MongoDB documents
+  - Index creation for efficient queries
+- Files changed:
+  - `src/gym_agent/services/database.py` - New MongoDB database service
+  - `tests/test_database.py` - 7 unit tests for database operations
+  - `pyproject.toml` - Added motor>=3.0.0 dependency
+- **Learnings for future iterations:**
+  - Use `motor.motor_asyncio` for async MongoDB operations in Python
+  - Store UUIDs as strings in MongoDB (use str() and UUID() for conversion)
+  - Create indexes on commonly queried fields (customer_id, conversation_id, status)
+
+---
+
+## 2026-01-10 12:38 - US-003
+
+- What was implemented:
+  - Integrated MongoDB DatabaseService with GymAgent class
+  - Automatic conversation creation/retrieval per customer and channel
+  - Store incoming and outgoing messages with intent and sentiment
+  - Load last 10 messages for context when processing new messages
+  - Automatic analytics event tracking for each message
+  - Automatic escalation creation when agent requests it
+  - Changed default LLM to Gemini 2.5 Flash per user request
+- Files changed:
+  - `src/gym_agent/agents/orchestrator.py` - Integrated database service
+  - `src/gym_agent/config.py` - Changed default to Gemini 2.5 Flash
+- **Learnings for future iterations:**
+  - GymAgent now automatically persists all conversations to MongoDB
+  - The `process_message` method handles full conversation lifecycle
+  - Use `get_conversation_history()` method to retrieve past messages
+
+---
+
+## 2026-01-10 12:45 - US-004, US-006
+
+- What was implemented:
+  - Created `src/gym_agent/services/outreach.py` with ProactiveOutreachService
+  - Absence check-in: get_absent_customers(), send_absence_check_ins()
+  - Subscription reminders: get_expiring_subscriptions(), send_subscription_reminders()
+  - Hebrew message templates for personalization
+  - Rate limiting checks before sending proactive messages
+  - Created `src/gym_agent/cli.py` with CLI commands for outreach
+- Files changed:
+  - `src/gym_agent/services/outreach.py` - Proactive outreach service
+  - `src/gym_agent/cli.py` - CLI tool
+  - `pyproject.toml` - Added gym-cli script entry point
+
+---
+
+## 2026-01-10 12:48 - US-005, US-007
+
+- What was implemented:
+  - Enhanced system prompt with detailed intent examples
+  - 9 intent categories with Hebrew and English keywords
+  - Compound intent handling instructions
+  - Escalation workflow integrated with GymAgent and MongoDB
+- Files changed:
+  - `src/gym_agent/agents/orchestrator.py` - Enhanced system prompt
+
+---
+
+## 2026-01-10 12:50 - US-008, US-009, US-010
+
+- What was implemented:
+  - Milestone celebration: 10, 50, 100, 200 workouts with Hebrew templates
+  - Duplicate prevention via analytics events
+  - Analytics events tracked throughout the system
+  - RateLimiter service with can_send_message() and get_rate_limit_status()
+  - Configurable limits via settings (max_per_hour, max_unanswered, followup_wait_hours)
+- Files changed:
+  - `src/gym_agent/services/outreach.py` - Added milestone celebrations
+  - `src/gym_agent/services/rate_limiter.py` - Rate limiting service
+
+---
+
+## MVP COMPLETE! 🎉
+
+All 10 user stories implemented:
+- US-001: Health Score calculation ✅
+- US-002: MongoDB conversation persistence ✅
+- US-003: Conversation history tracking ✅
+- US-004: Proactive absence check-ins ✅
+- US-005: Intent detection with Hebrew ✅
+- US-006: Subscription expiry alerts ✅
+- US-007: Human escalation workflow ✅
+- US-008: Milestone celebrations ✅
+- US-009: Analytics event tracking ✅
+- US-010: Rate limiting ✅
+
+Tests: 14 passing
+Branch: ralph/gym-ai-mvp

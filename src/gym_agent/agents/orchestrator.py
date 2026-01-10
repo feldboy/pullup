@@ -7,13 +7,16 @@ and routes to appropriate actions or specialized agents.
 
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 from pydantic_ai import Agent, RunContext
 
 from gym_agent.config import settings
 from gym_agent.models.customer import Customer
+from gym_agent.models.conversation import Channel, MessageDirection
 from gym_agent.models.responses import AgentResponse, Intent
-from gym_agent.services.mock_crm import MockCRMService
+from gym_agent.services.mongo_crm import MongoCRMService, get_mongo_crm
+from gym_agent.services.database import DatabaseService, get_database
 from gym_agent.agents.rag import RAGService, search_gym_info
 
 
@@ -23,11 +26,11 @@ class GymDependencies:
     
     customer: Customer
     gym_name: str
-    crm: MockCRMService
+    crm: MongoCRMService
     conversation_history: list[dict[str, str]] | None = None
 
 
-# System prompt template
+# System prompt template with detailed intent examples
 SYSTEM_PROMPT = """You are a friendly customer service agent for {gym_name}.
 
 CORE PRINCIPLES:
@@ -46,14 +49,65 @@ CUSTOMER CONTEXT:
 - Membership expires: {membership_expires}
 - Language preference: {language}
 
-INTENT HANDLING:
-- Time issues ("no time", "busy"): Offer flexible options (short classes, different hours)
-- Money issues ("expensive", "budget"): Be empathetic, offer freeze or alternatives, escalate if needed
-- Low motivation ("don't feel like it", "bored"): Encourage gently, suggest variety
-- Health issues ("injured", "sick"): Show empathy, offer freeze, don't push
-- Complaints ("bad service", "not happy"): Apologize sincerely, escalate immediately
-- Questions: Answer from your knowledge, admit if you don't know
-- Wants human ("talk to someone", "manager"): Immediately confirm and escalate, no resistance
+INTENT DETECTION - Identify the PRIMARY intent from these categories:
+
+1. TIME_CONSTRAINT - Customer has time/schedule issues
+   Hebrew: "אין לי זמן", "עסוק/ה", "לא מספיק", "עבודה", "לוח זמנים", "ילדים"
+   English: "no time", "busy", "schedule", "work", "kids"
+   Response: Offer 30-min express classes, early/late hours, weekend options
+
+2. FINANCIAL_ISSUE - Customer has money concerns
+   Hebrew: "יקר", "כסף", "תקציב", "לא יכול/ה להרשות", "מחיר"
+   English: "expensive", "budget", "can't afford", "price", "cost"
+   Response: Be empathetic, offer freeze, alternative plans, or escalate
+
+3. LOW_MOTIVATION - Customer lacks motivation
+   Hebrew: "לא בא לי", "עייף/ה", "משעמם", "לבד", "אין מוטיבציה"
+   English: "don't feel like it", "tired", "boring", "alone", "no motivation"
+   Response: Encourage gently, suggest new classes, buddy workout, PT trial
+
+4. HEALTH_INJURY - Customer has health issues
+   Hebrew: "נפצעתי", "כואב לי", "חולה", "ניתוח", "הריון"
+   English: "injured", "hurts", "sick", "surgery", "pregnant"
+   Response: Show empathy, offer freeze, don't push, escalate if serious
+
+5. POSITIVE - Customer is positive/engaged
+   Hebrew: "תודה", "מעולה", "אבוא", "נהדר", "אשמח"
+   English: "thanks", "great", "I'll come", "awesome", "sure"
+   Response: Acknowledge positively, end conversation gracefully
+
+6. QUESTION - Customer asking for information
+   Hebrew: "מתי", "איפה", "כמה", "מה", "האם יש", "שעות", "פתוח", "סגור"
+   English: "when", "where", "how much", "what", "do you have", "hours", "open", "close"
+   ⚠️ CRITICAL: You MUST call the search_gym_knowledge tool BEFORE answering ANY factual question.
+   NEVER say "I don't have information" without first calling search_gym_knowledge.
+   Common questions that REQUIRE the tool:
+   - שעות פעילות / opening hours
+   - מיקום / location  
+   - שיעורים / classes
+   - מנויים / memberships
+   - מחירים / prices
+   - חניה / parking
+
+7. COMPLAINT - Customer is unhappy/complaining
+   Hebrew: "שירות גרוע", "לא מרוצה", "מתלונן/ת", "בעיה", "נמאס לי"
+   English: "bad service", "not happy", "complaint", "problem", "fed up"
+   Response: Apologize sincerely, escalate IMMEDIATELY
+
+8. WANTS_HUMAN - Customer wants to talk to a person
+   Hebrew: "לדבר עם מישהו", "מנהל", "נציג", "אדם אמיתי", "תעבירו אותי"
+   English: "talk to someone", "manager", "representative", "real person"
+   Response: Immediately confirm and escalate, NO RESISTANCE
+
+9. GREETING - Simple greeting
+   Hebrew: "היי", "שלום", "מה נשמע", "אהלן"
+   English: "hi", "hello", "hey", "what's up"
+   Response: Greet back warmly, ask how you can help
+
+COMPOUND INTENTS:
+- If message contains multiple intents, address the PRIMARY one first
+- Example: "Too expensive and I'm busy" → FINANCIAL_ISSUE is primary
+- Example: "What are hours? Also I was sick" → QUESTION is primary, acknowledge health
 
 TONE GUIDELINES:
 - Professional but warm
@@ -252,12 +306,14 @@ class GymAgent:
     High-level wrapper for the Gym AI agent.
     
     Provides a simpler interface for processing messages.
+    Integrates with MongoDB for conversation persistence.
     """
     
     def __init__(
         self,
         gym_name: str = "EloozFit - אילוזפיט",  # Real gym name from PDF
-        crm: MockCRMService | None = None,
+        crm: MongoCRMService | None = None,
+        db: DatabaseService | None = None,
     ):
         """
         Initialize the agent.
@@ -265,15 +321,18 @@ class GymAgent:
         Args:
             gym_name: Name of the gym
             crm: CRM service (uses mock if not provided)
+            db: Database service for persistence (uses default if not provided)
         """
         self.gym_name = gym_name
-        self.crm = crm or MockCRMService()
+        self.crm = crm or get_mongo_crm()
+        self.db = db or get_database()
         self._agent = gym_agent
     
     async def process_message(
         self,
         customer: Customer,
         message: str,
+        channel: Channel = Channel.TELEGRAM,
         conversation_history: list[dict[str, str]] | None = None,
     ) -> AgentResponse:
         """
@@ -282,11 +341,83 @@ class GymAgent:
         Args:
             customer: Customer object
             message: The customer's message
-            conversation_history: Optional list of previous messages
+            channel: Communication channel
+            conversation_history: Optional list of previous messages (overrides DB lookup)
             
         Returns:
             AgentResponse with message, intent, sentiment, etc.
         """
+        # Helper to check if message is a command from manager
+        is_admin = False
+        if customer.telegram_id == settings.manager_telegram_id:
+            is_admin = True
+            
+        if is_admin and message.startswith("/"):
+            command = message.lower().strip()
+            
+            if command == "/stats":
+                stats = await self.crm.get_stats()
+                response_text = (
+                    "📊 *Gym Stats*\n\n"
+                    f"👥 Total Members: {stats.get('total_customers', 0)}\n"
+                    f"✅ Active: {stats.get('active_customers', 0)}\n"
+                    f"⚠️ At Risk: {stats.get('at_risk_customers', 0)}\n"
+                )
+                return AgentResponse(
+                    message=response_text,
+                    intent=Intent.QUESTION, # Or GENERIC
+                    sentiment=0.0,
+                    escalate=False
+                )
+            
+            elif command == "/risk":
+                from gym_agent.models.customer import CustomerStatus
+                risk_customers = await self.crm.search_customers(status=CustomerStatus.AT_RISK)
+                
+                if not risk_customers:
+                    response_text = "🎉 No customers currently at risk!"
+                else:
+                    response_text = "⚠️ *At Risk Customers:*\n\n"
+                    for c in risk_customers[:10]: # Limit to 10
+                         response_text += f"• {c.full_name} ({c.health_score})\n"
+                    
+                    if len(risk_customers) > 10:
+                        response_text += f"\n...and {len(risk_customers) - 10} more."
+                
+                return AgentResponse(
+                    message=response_text,
+                    intent=Intent.QUESTION,
+                    sentiment=0.0,
+                    escalate=False
+                )
+
+        # Get or create conversation
+        conversation = await self.db.get_or_create_conversation(
+            customer_id=customer.id,
+            channel=channel,
+        )
+        
+        # Store incoming message
+        await self.db.add_message(
+            conversation_id=conversation.id,
+            direction=MessageDirection.INBOUND,
+            content=message,
+        )
+        
+        # Load conversation history from database if not provided
+        if conversation_history is None:
+            db_messages = await self.db.get_conversation_messages(
+                conversation_id=conversation.id,
+                limit=10,
+            )
+            conversation_history = [
+                {
+                    "role": "user" if m.direction == MessageDirection.INBOUND else "assistant",
+                    "content": m.content,
+                }
+                for m in db_messages[:-1]  # Exclude the message we just added
+            ]
+        
         deps = GymDependencies(
             customer=customer,
             gym_name=self.gym_name,
@@ -304,7 +435,41 @@ class GymAgent:
             prompt = f"Conversation history:\n{history_text}\n\nNew message: {message}"
         
         result = await self._agent.run(prompt, deps=deps)
-        return result.output
+        response = result.output
+        
+        # Store outgoing message
+        await self.db.add_message(
+            conversation_id=conversation.id,
+            direction=MessageDirection.OUTBOUND,
+            content=response.message,
+            intent=response.intent.value,
+            sentiment=response.sentiment,
+            agent_type="orchestrator",
+        )
+        
+        # Track analytics event
+        await self.db.track_event(
+            event_type="conversation.message_received",
+            customer_id=customer.id,
+            conversation_id=conversation.id,
+            properties={
+                "intent": response.intent.value,
+                "sentiment": response.sentiment,
+                "escalated": response.escalate,
+            },
+        )
+        
+        # Handle escalation if needed
+        if response.escalate:
+            await self.db.create_escalation(
+                conversation_id=conversation.id,
+                reason=response.escalation_reason or "Agent requested escalation",
+                priority="high" if response.intent == Intent.COMPLAINT else "normal",
+            )
+            print(f"🚨 ESCALATION: Customer {customer.full_name}")
+            print(f"   Reason: {response.escalation_reason}")
+        
+        return response
     
     async def get_customer_by_telegram(self, telegram_id: int) -> Customer | None:
         """Look up customer by Telegram ID."""
@@ -316,7 +481,45 @@ class GymAgent:
         first_name: str,
     ) -> Customer:
         """Create a test customer for development."""
-        return self.crm.add_test_customer(
+        return await self.crm.add_test_customer(
             telegram_id=telegram_id,
             first_name=first_name,
         )
+    
+    async def get_conversation_history(
+        self,
+        customer_id: UUID,
+        channel: Channel = Channel.TELEGRAM,
+        limit: int = 10,
+    ) -> list[dict[str, str]]:
+        """
+        Get conversation history for a customer.
+        
+        Args:
+            customer_id: Customer UUID
+            channel: Communication channel
+            limit: Maximum messages to retrieve
+            
+        Returns:
+            List of messages as dicts with 'role' and 'content'
+        """
+        conversation = await self.db.get_active_conversation(
+            customer_id=customer_id,
+            channel=channel,
+        )
+        
+        if not conversation:
+            return []
+        
+        messages = await self.db.get_conversation_messages(
+            conversation_id=conversation.id,
+            limit=limit,
+        )
+        
+        return [
+            {
+                "role": "user" if m.direction == MessageDirection.INBOUND else "assistant",
+                "content": m.content,
+            }
+            for m in messages
+        ]
