@@ -28,3 +28,9 @@
 - Mounted static files in main.py.
 - Verified UI via browser subagent.
 ---
+
+## 2026-01-10 - US-004
+- Implemented app.js for fetching/rendering CRM data.
+- Fixed API 404 error by moving static mount to end of main.py.
+- Verified API reachability manually.
+---

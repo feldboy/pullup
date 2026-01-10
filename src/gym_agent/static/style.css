@@ -358,3 +358,62 @@ nav {
     font-family: inherit;
     outline: none;
 }
+
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge.active {
+    background: rgba(0, 184, 148, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.badge.at_risk {
+    background: rgba(253, 203, 110, 0.2);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.badge.inactive {
+    background: rgba(255, 118, 117, 0.2);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.badge.membership {
+    background: rgba(162, 155, 254, 0.2);
+    color: var(--secondary-color);
+    border: 1px solid var(--secondary-color);
+}
+
+/* Health Indicator */
+.health-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.health-indicator .bar {
+    height: 4px;
+    border-radius: 2px;
+}
+
+.health-indicator span {
+    font-size: 0.8rem;
+    width: 25px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.status-dot.active { background: var(--success); }
+.status-dot.closed { background: var(--text-secondary); }
+

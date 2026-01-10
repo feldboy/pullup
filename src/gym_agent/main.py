@@ -70,13 +70,6 @@ async def health_check() -> dict[str, Any]:
         "dashboard": "/index.html"
     }
 
-# Mount static files
-# Get absolute path to static directory
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if not os.path.exists(static_dir):
-    os.makedirs(static_dir)
-
-app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 # ==================== API Models ====================
@@ -354,6 +347,16 @@ async def whatsapp_verify(request: Request) -> Any:
         return int(challenge) if challenge else ""
     
     raise HTTPException(status_code=403, detail="Verification failed")
+
+
+
+# Mount static files (catch-all)
+# Get absolute path to static directory
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
 def main() -> None:
