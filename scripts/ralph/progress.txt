@@ -1,0 +1,14 @@
+## Codebase Patterns
+- Use `pydantic_ai` framework for all agents
+- Models go in `src/gym_agent/models/`
+- Services go in `src/gym_agent/services/`
+- Agents go in `src/gym_agent/agents/`
+- Use Hebrew for customer-facing messages
+- Run `mypy src/` for type checking
+- Run `pytest tests/` for tests
+- The main FastAPI app is in `src/gym_agent/main.py`
+- The gym knowledge base is hardcoded in `rag.py` under `ELOOZFIT_KNOWLEDGE`
+- For testing, use the Telegram bot with polling mode
+
+---
+

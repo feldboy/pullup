@@ -7,7 +7,7 @@ without requiring actual CRM (Arbox) integration.
 
 from datetime import date, datetime, timedelta
 from functools import lru_cache
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 import random
 
@@ -30,7 +30,7 @@ class MockCRMService:
     - Visit history
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize with mock data."""
         self._customers: dict[UUID, Customer] = {}
         self._visits: dict[UUID, list[datetime]] = {}
@@ -123,26 +123,35 @@ class MockCRMService:
         for i, data in enumerate(mock_customers):
             customer_id = uuid4()
             
-            # Calculate dates
-            days_since_visit = data.pop("days_since_visit", 0)
-            days_until_expiry = data.pop("days_until_expiry", 90)
-            preferred_language = data.pop("preferred_language", "he")
-            preferred_classes = data.pop("preferred_classes", [])
+            # Calculate dates - use cast for type safety
+            days_since_visit = cast(int, data.pop("days_since_visit", 0))
+            days_until_expiry = cast(int, data.pop("days_until_expiry", 90))
+            preferred_language = cast(str, data.pop("preferred_language", "he"))
+            preferred_classes = cast(list[str], data.pop("preferred_classes", []))
+            
+            # Extract typed values from data dict
+            phone = cast(str, data["phone"])
+            first_name = cast(str, data["first_name"])
+            last_name = cast(str | None, data.get("last_name"))
+            membership_type = cast(MembershipType, data["membership_type"])
+            status = cast(CustomerStatus, data["status"])
+            health_score = cast(int, data["health_score"])
+            total_visits = cast(int, data["total_visits"])
             
             customer = Customer(
                 id=customer_id,
                 crm_id=f"ARBOX-{1000 + i}",
-                phone=data["phone"],
-                first_name=data["first_name"],
-                last_name=data.get("last_name"),
-                email=f"{data['first_name'].lower()}@example.com",
-                membership_type=data["membership_type"],
+                phone=phone,
+                first_name=first_name,
+                last_name=last_name,
+                email=f"{first_name.lower()}@example.com",
+                membership_type=membership_type,
                 membership_start_date=date.today() - timedelta(days=180),
                 membership_end_date=date.today() + timedelta(days=days_until_expiry),
-                status=data["status"],
-                health_score=data["health_score"],
+                status=status,
+                health_score=health_score,
                 last_visit=datetime.now() - timedelta(days=days_since_visit) if days_since_visit else None,
-                total_visits=data["total_visits"],
+                total_visits=total_visits,
                 preferred_classes=preferred_classes,
                 preferred_language=preferred_language,
                 telegram_id=1000000 + i,  # Mock telegram ID
