@@ -14,3 +14,10 @@
   - mock_crm.py is broken/corrupt; removed from __init__.
   - Use .venv/bin/python for running scripts.
 ---
+
+## 2026-01-10 - US-002
+- Implemented CRM API endpoints in main.py.
+- Added get_stats to MongoCRMService.
+- Added get_customer_conversations to DatabaseService.
+- Verified endpoints with test client.
+---

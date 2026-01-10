@@ -213,6 +213,21 @@ class DatabaseService:
         if doc:
             return self._dict_to_conversation(doc)
         return None
+        
+    async def get_customer_conversations(
+        self,
+        customer_id: UUID,
+        limit: int = 10,
+    ) -> list[Conversation]:
+        """Get all conversations for a customer."""
+        cursor = self._conversations.find({
+            "customer_id": str(customer_id)
+        }).sort("started_at", -1).limit(limit)
+        
+        conversations = []
+        async for doc in cursor:
+            conversations.append(self._dict_to_conversation(doc))
+        return conversations
     
     async def get_or_create_conversation(
         self,

@@ -172,6 +172,24 @@ class MongoCRMService:
             updated_at=datetime.now()
         )
         
+    async def get_stats(self) -> dict[str, Any]:
+        """Get high-level CRM statistics."""
+        total_customers = await self._customers.count_documents({})
+        active_customers = await self._customers.count_documents({"status": CustomerStatus.ACTIVE.value})
+        at_risk = await self._customers.count_documents({"status": CustomerStatus.AT_RISK.value})
+        
+        # Calculate recent visits (mock logic/limited data)
+        # In real world, we'd count visits in last 24h from a visits collection.
+        # Here we just return static or calculated from customers if possible.
+        
+        return {
+            "total_customers": total_customers,
+            "active_customers": active_customers,
+            "at_risk_customers": at_risk,
+            "new_this_month": 0, # Placeholder
+            "visits_today": 0,   # Placeholder
+        }
+
     # ==================== Test Utilities ====================
     
     def add_test_customer(self, telegram_id: int, first_name: str, **kwargs: Any) -> Customer:

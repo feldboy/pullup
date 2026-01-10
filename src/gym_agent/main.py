@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from gym_agent.config import settings
 from gym_agent.agents.orchestrator import GymAgent
 from gym_agent.services.mongo_crm import get_mongo_crm
+from gym_agent.services.database import get_database
 
 
 @asynccontextmanager
@@ -27,8 +28,11 @@ async def lifespan(app: FastAPI):
     # Initialize services
     # Connect to MongoDB CRM
     crm = get_mongo_crm()
+    db = get_database()
+    
     app.state.crm = crm
-    app.state.agent = GymAgent(crm=crm)
+    app.state.db = db
+    app.state.agent = GymAgent(crm=crm, db=db)
     
     yield
     
@@ -142,11 +146,54 @@ async def process_message(request: MessageRequest) -> MessageResponse:
     )
 
 
-@app.get("/api/v1/customers")
-async def list_customers() -> list[dict[str, Any]]:
-    """List all customers (for development/testing)."""
+@app.get("/api/v1/dashboard/stats")
+async def get_dashboard_stats() -> dict[str, Any]:
+    """Get high-level dashboard statistics."""
     crm = app.state.crm
-    customers = await crm.get_all_customers()
+    return await crm.get_stats()
+
+
+@app.get("/api/v1/customers")
+async def list_customers(
+    search: str | None = None,
+    status: str | None = None,
+    health_below: int | None = None,
+) -> list[dict[str, Any]]:
+    """
+    List all customers.
+    
+    Args:
+        search: Optional search term (name/phone/email) - filtering not fully implemented in Mongo yet? 
+                Actually get_all_customers returns all, we can filter in memory or implement search in CRM.
+        status: Filter by status
+        health_below: Filter by health score below X
+    """
+    crm = app.state.crm
+    
+    # If we have filter params, use search_customers
+    from gym_agent.models.customer import CustomerStatus
+    
+    status_enum = None
+    if status:
+        try:
+            status_enum = CustomerStatus(status)
+        except ValueError:
+            pass
+            
+    if status_enum or health_below:
+        customers = await crm.search_customers(status=status_enum, health_score_below=health_below)
+    else:
+        customers = await crm.get_all_customers()
+    
+    # In-memory search for text (until we add text index/query to CRM)
+    if search:
+        search = search.lower()
+        customers = [
+            c for c in customers
+            if search in c.full_name.lower() or 
+               search in c.phone or 
+               (c.email and search in c.email.lower())
+        ]
     
     return [
         {
@@ -161,6 +208,64 @@ async def list_customers() -> list[dict[str, Any]]:
         }
         for c in customers
     ]
+
+@app.get("/api/v1/conversations/{customer_id}")
+async def get_customer_conversations(customer_id: str) -> list[dict[str, Any]]:
+    """Get conversation history for a customer."""
+    db = app.state.db
+    from uuid import UUID
+    
+    try:
+        cid = UUID(customer_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid customer ID")
+        
+    conversations = await db.get_customer_conversations(cid)
+    
+    # For each conversation, we might want messages? 
+    # Or just the conversation metadata.
+    # The dashboard likely wants the MESSAGES of the active conversation, or all conversations.
+    # For now, let's return conversations extended with recent messages?
+    # Or just return list of conversations, and another endpoint for messages?
+    # US-002 AC says "Return chat history".
+    # Usually chat history = messages.
+    # So maybe for the ACTIVE conversation?
+    
+    # Let's return the simplified chat structure: list of messages from the most recent active conversation,
+    # or just all messages flattened?
+    # The prompt implies "show me the chat".
+    
+    # Let's get the active conversation first.
+    # If no active, get the last one.
+    
+    if not conversations:
+        return []
+        
+    # Get messages for the most recent conversation
+    # We'll just return the conversations list for this endpoint, 
+    # and maybe populate messages inside?
+    
+    result = []
+    for conv in conversations:
+        messages = await db.get_conversation_messages(conv.id, limit=50)
+        conv_dict = {
+            "id": str(conv.id),
+            "status": conv.status.value,
+            "channel": conv.channel.value,
+            "started_at": conv.started_at,
+            "messages": [
+                {
+                    "content": m.content,
+                    "direction": m.direction.value,
+                    "created_at": m.created_at,
+                    "intent": m.intent,
+                }
+                for m in messages
+            ]
+        }
+        result.append(conv_dict)
+        
+    return result
 
 
 @app.get("/api/v1/customers/{customer_id}")
