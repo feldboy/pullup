@@ -29,3 +29,21 @@
 
 ---
 
+## 2026-01-10 12:35 - US-002
+
+- What was implemented:
+  - Created `src/gym_agent/services/database.py` with MongoDB async support using motor
+  - Full CRUD operations for conversations, messages, escalations, and analytics events
+  - Proper conversion between Pydantic models and MongoDB documents
+  - Index creation for efficient queries
+- Files changed:
+  - `src/gym_agent/services/database.py` - New MongoDB database service
+  - `tests/test_database.py` - 7 unit tests for database operations
+  - `pyproject.toml` - Added motor>=3.0.0 dependency
+- **Learnings for future iterations:**
+  - Use `motor.motor_asyncio` for async MongoDB operations in Python
+  - Store UUIDs as strings in MongoDB (use str() and UUID() for conversion)
+  - Create indexes on commonly queried fields (customer_id, conversation_id, status)
+
+---
+

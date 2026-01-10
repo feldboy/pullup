@@ -7,13 +7,16 @@ and routes to appropriate actions or specialized agents.
 
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 from pydantic_ai import Agent, RunContext
 
 from gym_agent.config import settings
 from gym_agent.models.customer import Customer
+from gym_agent.models.conversation import Channel, MessageDirection
 from gym_agent.models.responses import AgentResponse, Intent
 from gym_agent.services.mock_crm import MockCRMService
+from gym_agent.services.database import DatabaseService, get_database
 from gym_agent.agents.rag import RAGService, search_gym_info
 
 
@@ -252,12 +255,14 @@ class GymAgent:
     High-level wrapper for the Gym AI agent.
     
     Provides a simpler interface for processing messages.
+    Integrates with MongoDB for conversation persistence.
     """
     
     def __init__(
         self,
         gym_name: str = "EloozFit - אילוזפיט",  # Real gym name from PDF
         crm: MockCRMService | None = None,
+        db: DatabaseService | None = None,
     ):
         """
         Initialize the agent.
@@ -265,15 +270,18 @@ class GymAgent:
         Args:
             gym_name: Name of the gym
             crm: CRM service (uses mock if not provided)
+            db: Database service for persistence (uses default if not provided)
         """
         self.gym_name = gym_name
         self.crm = crm or MockCRMService()
+        self.db = db or get_database()
         self._agent = gym_agent
     
     async def process_message(
         self,
         customer: Customer,
         message: str,
+        channel: Channel = Channel.TELEGRAM,
         conversation_history: list[dict[str, str]] | None = None,
     ) -> AgentResponse:
         """
@@ -282,11 +290,39 @@ class GymAgent:
         Args:
             customer: Customer object
             message: The customer's message
-            conversation_history: Optional list of previous messages
+            channel: Communication channel
+            conversation_history: Optional list of previous messages (overrides DB lookup)
             
         Returns:
             AgentResponse with message, intent, sentiment, etc.
         """
+        # Get or create conversation
+        conversation = await self.db.get_or_create_conversation(
+            customer_id=customer.id,
+            channel=channel,
+        )
+        
+        # Store incoming message
+        await self.db.add_message(
+            conversation_id=conversation.id,
+            direction=MessageDirection.INBOUND,
+            content=message,
+        )
+        
+        # Load conversation history from database if not provided
+        if conversation_history is None:
+            db_messages = await self.db.get_conversation_messages(
+                conversation_id=conversation.id,
+                limit=10,
+            )
+            conversation_history = [
+                {
+                    "role": "user" if m.direction == MessageDirection.INBOUND else "assistant",
+                    "content": m.content,
+                }
+                for m in db_messages[:-1]  # Exclude the message we just added
+            ]
+        
         deps = GymDependencies(
             customer=customer,
             gym_name=self.gym_name,
@@ -304,7 +340,41 @@ class GymAgent:
             prompt = f"Conversation history:\n{history_text}\n\nNew message: {message}"
         
         result = await self._agent.run(prompt, deps=deps)
-        return result.output
+        response = result.output
+        
+        # Store outgoing message
+        await self.db.add_message(
+            conversation_id=conversation.id,
+            direction=MessageDirection.OUTBOUND,
+            content=response.message,
+            intent=response.intent.value,
+            sentiment=response.sentiment,
+            agent_type="orchestrator",
+        )
+        
+        # Track analytics event
+        await self.db.track_event(
+            event_type="conversation.message_received",
+            customer_id=customer.id,
+            conversation_id=conversation.id,
+            properties={
+                "intent": response.intent.value,
+                "sentiment": response.sentiment,
+                "escalated": response.escalate,
+            },
+        )
+        
+        # Handle escalation if needed
+        if response.escalate:
+            await self.db.create_escalation(
+                conversation_id=conversation.id,
+                reason=response.escalation_reason or "Agent requested escalation",
+                priority="high" if response.intent == Intent.COMPLAINT else "normal",
+            )
+            print(f"🚨 ESCALATION: Customer {customer.full_name}")
+            print(f"   Reason: {response.escalation_reason}")
+        
+        return response
     
     async def get_customer_by_telegram(self, telegram_id: int) -> Customer | None:
         """Look up customer by Telegram ID."""
@@ -320,3 +390,41 @@ class GymAgent:
             telegram_id=telegram_id,
             first_name=first_name,
         )
+    
+    async def get_conversation_history(
+        self,
+        customer_id: UUID,
+        channel: Channel = Channel.TELEGRAM,
+        limit: int = 10,
+    ) -> list[dict[str, str]]:
+        """
+        Get conversation history for a customer.
+        
+        Args:
+            customer_id: Customer UUID
+            channel: Communication channel
+            limit: Maximum messages to retrieve
+            
+        Returns:
+            List of messages as dicts with 'role' and 'content'
+        """
+        conversation = await self.db.get_active_conversation(
+            customer_id=customer_id,
+            channel=channel,
+        )
+        
+        if not conversation:
+            return []
+        
+        messages = await self.db.get_conversation_messages(
+            conversation_id=conversation.id,
+            limit=limit,
+        )
+        
+        return [
+            {
+                "role": "user" if m.direction == MessageDirection.INBOUND else "assistant",
+                "content": m.content,
+            }
+            for m in messages
+        ]

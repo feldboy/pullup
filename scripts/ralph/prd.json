@@ -48,8 +48,8 @@
                 "Test conversation continuity in Telegram bot"
             ],
             "priority": 3,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Integrated MongoDB with GymAgent. Messages automatically stored and loaded. Changed default LLM to Gemini 2.5 Flash."
         },
         {
             "id": "US-004",
