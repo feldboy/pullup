@@ -80,8 +80,8 @@
                 "Typecheck passes"
             ],
             "priority": 5,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Enhanced system prompt with detailed Hebrew/English examples for all 9 intent types plus compound intent handling."
         },
         {
             "id": "US-006",
@@ -111,8 +111,8 @@
                 "Typecheck passes"
             ],
             "priority": 7,
-            "passes": false,
-            "notes": "Console notifications for MVP, will add email/Slack later"
+            "passes": true,
+            "notes": "Escalation model in conversation.py, stored in MongoDB, auto-triggered in GymAgent when escalate=True."
         },
         {
             "id": "US-008",
