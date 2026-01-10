@@ -160,6 +160,50 @@
             "priority": 10,
             "passes": true,
             "notes": "RateLimiter service with can_send_message() and get_rate_limit_status(). Settings configurable."
+        },
+        {
+            "id": "US-011",
+            "title": "Admin System Configuration",
+            "description": "As an admin, I want to edit the agent's system prompt and personality so I can control how it talks without coding.",
+            "acceptanceCriteria": [
+                "Create SystemConfig model in database",
+                "Create ConfigService to load/save settings",
+                "Update Orchestrator to use dynamic prompt from ConfigService",
+                "Add API endpoints for GET/POST /api/admin/config",
+                "Typecheck passes"
+            ],
+            "priority": 11,
+            "passes": true,
+            "notes": "Implemented ConfigManager, DatabaseService update, Orchestrator integration, and API endpoints."
+        },
+        {
+            "id": "US-012",
+            "title": "Admin Customer Management",
+            "description": "As an admin, I want to view and edit customer details manually.",
+            "acceptanceCriteria": [
+                "Add API endpoints for GET /api/admin/customers (list/search)",
+                "Add API endpoints for PUT /api/admin/customers/{id} (edit)",
+                "Allow editing health score, tags, notes",
+                "Typecheck passes"
+            ],
+            "priority": 12,
+            "passes": true,
+            "notes": "Implemented update_customer in MongoCRMService and PUT endpoint in API."
+        },
+        {
+            "id": "US-013",
+            "title": "Admin Dashboard UI",
+            "description": "As an admin, I want a nice web UI to manage the agent and customers.",
+            "acceptanceCriteria": [
+                "Create admin.html with tabs for Config and Customers",
+                "Implement fetching and saving config via API",
+                "Implement customer table with search",
+                "Implement customer edit modal",
+                "Browser verification passes"
+            ],
+            "priority": 13,
+            "passes": true,
+            "notes": "Implemented admin.html and admin.js. Verified backend APIs."
         }
     ]
 }

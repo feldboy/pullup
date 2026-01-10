@@ -203,6 +203,37 @@ class MongoCRMService:
             }
         }
 
+
+
+    async def update_customer(self, customer: Customer) -> None:
+        """
+        Update customer in database.
+        """
+        # Convert Customer model back to dict
+        data = {
+            "crm_id": customer.crm_id,
+            "phone": customer.phone,
+            "first_name": customer.first_name,
+            "last_name": customer.last_name,
+            "email": customer.email,
+            "membership_type": customer.membership_type.value,
+            "membership_start_date": customer.membership_start_date.isoformat() if customer.membership_start_date else None,
+            "membership_end_date": customer.membership_end_date.isoformat() if customer.membership_end_date else None,
+            "status": customer.status.value,
+            "health_score": customer.health_score,
+            "last_visit": customer.last_visit.isoformat() if customer.last_visit else None,
+            "total_visits": customer.total_visits,
+            "preferred_classes": customer.preferred_classes,
+            "preferred_language": customer.preferred_language,
+            "telegram_id": customer.telegram_id,
+            "metadata": customer.metadata,
+        }
+        
+        await self._customers.update_one(
+            {"_id": str(customer.id)},
+            {"$set": data}
+        )
+
     # ==================== Test Utilities ====================
     
     async def add_test_customer(self, telegram_id: int, first_name: str, **kwargs: Any) -> Customer:

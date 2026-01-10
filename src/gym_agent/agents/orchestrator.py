@@ -31,7 +31,7 @@ class GymDependencies:
 
 
 # System prompt template with detailed intent examples
-SYSTEM_PROMPT = """You are a friendly customer service agent for {gym_name}.
+DEFAULT_SYSTEM_PROMPT = """You are a friendly customer service agent for {gym_name}.
 
 CORE PRINCIPLES:
 1. Be conversational and natural - NOT robotic
@@ -129,11 +129,19 @@ CRITICAL RULES:
 """
 
 
-def build_system_prompt(deps: GymDependencies) -> str:
-    """Build the system prompt with customer context."""
+from gym_agent.services.config_manager import get_config_manager
+
+async def build_system_prompt(deps: GymDependencies) -> str:
+    """
+    Build the system prompt with customer context.
+    Fetches the base template from ConfigManager (DB) or uses default.
+    """
+    config_manager = get_config_manager()
+    base_prompt = await config_manager.get_config("system_prompt", DEFAULT_SYSTEM_PROMPT)
+    
     customer = deps.customer
     
-    return SYSTEM_PROMPT.format(
+    return base_prompt.format(
         gym_name=deps.gym_name,
         customer_name=customer.first_name,
         member_since=customer.membership_start_date or "Unknown",
@@ -173,14 +181,14 @@ gym_agent = Agent(
     _model_string,
     deps_type=GymDependencies,
     output_type=AgentResponse,
-    system_prompt=SYSTEM_PROMPT,  # Will be overridden with dynamic prompt
+    system_prompt=DEFAULT_SYSTEM_PROMPT,  # Will be overridden with dynamic prompt
 )
 
 
 @gym_agent.system_prompt
 async def add_customer_context(ctx: RunContext[GymDependencies]) -> str:
     """Add dynamic customer context to the system prompt."""
-    return build_system_prompt(ctx.deps)
+    return await build_system_prompt(ctx.deps)
 
 
 @gym_agent.tool

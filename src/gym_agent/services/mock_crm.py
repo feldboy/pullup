@@ -11,7 +11,7 @@ class MockCRMService:
         self.db = get_database()
         
         # Generate initial mock customers
-        self._generate_mock_customers()
+        # self._generate_mock_customers()
 
     # ... existing generation methods ...
 

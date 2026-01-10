@@ -52,3 +52,15 @@
 - Frontend: Added Analytics and Settings views, charts logic, and routing
 - UX: Glassmorphism layout extended to new pages
 ---
+
+## 2026-01-10 17:56 - Admin Dashboard (US-011, US-012, US-013)
+Thread: [Current Thread]
+- Implemented US-011: Admin System Configuration (ConfigManager, Dynamic Prompt)
+- Implemented US-012: Admin Customer Management (Update API, MongoCRMService updates)
+- Implemented US-013: Admin Dashboard UI (admin.html, admin.js)
+- **Learnings:**
+  - Need to expose `_db` property in DatabaseService for other services to access raw Mongo collections.
+  - `MongoCRMService` needed explicit `update_customer` method as it wasn't present in the mock.
+  - ConfigManager handles fallback to default constants if DB is empty.
+  - Frontend uses `app.mount` with `html=True` for clean URL mapping.
+---

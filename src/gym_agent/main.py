@@ -98,6 +98,25 @@ class ReplyRequest(BaseModel):
     channel: str = "telegram"
 
 
+class ConfigRequest(BaseModel):
+    """Request model for updating system configuration."""
+    key: str
+    value: str
+
+
+class UpdateCustomerRequest(BaseModel):
+    """Request model for updating customer details."""
+    first_name: str | None = None
+    last_name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    health_score: int | None = None
+    status: str | None = None
+    manual_notes: str | None = None
+
+
+
+
 # ==================== API Endpoints ====================
 
 @app.post("/api/v1/message", response_model=MessageResponse)
@@ -370,6 +389,71 @@ async def get_customer(customer_id: str) -> dict[str, Any]:
             "expiry": health_score.expiry_score if health_score else None,
         },
     }
+# ==================== Admin Endpoints ====================
+
+@app.get("/api/admin/config")
+async def get_system_config(key: str) -> dict[str, str]:
+    """Get a system configuration value."""
+    from gym_agent.services.config_manager import get_config_manager
+    manager = get_config_manager()
+    value = await manager.get_config(key)
+    return {"key": key, "value": value}
+
+
+@app.post("/api/admin/config")
+async def update_system_config(request: ConfigRequest) -> dict[str, str]:
+    """Update a system configuration value."""
+    from gym_agent.services.config_manager import get_config_manager
+    manager = get_config_manager()
+    await manager.set_config(request.key, request.value)
+    return {"status": "updated", "key": request.key}
+
+
+@app.put("/api/admin/customers/{customer_id}")
+async def update_customer(customer_id: str, request: UpdateCustomerRequest) -> dict[str, Any]:
+    """
+    Update customer details (Admin).
+    Supports partial updates.
+    """
+    crm = app.state.crm
+    from uuid import UUID
+    
+    try:
+        cid = UUID(customer_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid customer ID")
+        
+    customer = await crm.get_customer(cid)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+        
+    # Update fields if provided
+    if request.first_name is not None:
+        customer.first_name = request.first_name
+    if request.last_name is not None:
+        customer.last_name = request.last_name
+    if request.phone is not None:
+        customer.phone = request.phone
+    if request.email is not None:
+        customer.email = request.email
+    if request.health_score is not None:
+        customer.health_score = request.health_score
+    
+    if request.status:
+        try:
+            from gym_agent.models.customer import CustomerStatus
+            customer.status = CustomerStatus(request.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {request.status}")
+            
+    if request.manual_notes:
+        customer.metadata["manual_notes"] = request.manual_notes
+        
+    # Save via CRM
+    await crm.update_customer(customer)
+    
+    return {"status": "updated", "id": str(customer.id)}
+
 
 
 # ==================== Webhook Endpoints (Phase 2) ====================

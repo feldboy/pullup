@@ -58,6 +58,11 @@ class DatabaseService:
         self._analytics_events = self._db.analytics_events
         self._customers = self._db.customers
 
+    @property
+    def db(self) -> AsyncIOMotorDatabase[Any]:
+        """Get raw database instance."""
+        return self._db
+
     # ... initialize and close methods are fine ...
     
     # ==================== Customers ====================
