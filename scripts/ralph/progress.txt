@@ -12,3 +12,20 @@
 
 ---
 
+## 2026-01-10 12:30 - US-001
+
+- What was implemented:
+  - Verified existing HealthScore model in `src/gym_agent/models/customer.py`
+  - Verified `calculate_health_score` function in `src/gym_agent/services/mock_crm.py`
+  - Fixed type annotations using `cast()` for type safety
+- Files changed:
+  - `src/gym_agent/services/mock_crm.py` - Added type annotations
+  - `scripts/ralph/prd.json` - Created PRD with 10 user stories
+  - `scripts/ralph/progress.txt` - Created with codebase patterns
+- **Learnings for future iterations:**
+  - HealthScore already existed - check existing code before implementing
+  - Use `cast()` from typing instead of type: ignore comments for better type safety
+  - The project already has good test coverage with pytest
+
+---
+
