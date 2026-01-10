@@ -1,0 +1,16 @@
+## Codebase Patterns
+- Use `settings` from `gym_agent.config` for configuration.
+- Use `AsyncIOMotorClient` for MongoDB interactions.
+- Pydantic models are in `gym_agent.models`.
+- API endpoints are in `gym_agent.main`.
+
+
+## 2026-01-10 - US-001
+- Implemented MongoCRMService to replace MockCRMService.
+- Updated main.py and orchestrator.py to use real DB connection.
+- Fixed SyntaxError in database.py.
+- **Learnings:**
+  - database.py seems to have some non-async methods with await in previous versions or corruption? Verified fixed.
+  - mock_crm.py is broken/corrupt; removed from __init__.
+  - Use .venv/bin/python for running scripts.
+---

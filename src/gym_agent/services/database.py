@@ -12,6 +12,8 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
+from gym_agent.models.customer import Customer, CustomerStatus, MembershipType
+
 from gym_agent.config import settings
 from gym_agent.models.conversation import (
     Conversation,
@@ -31,6 +33,7 @@ class DatabaseService:
     - Conversation CRUD operations
     - Message storage and retrieval
     - Escalation management
+    - Customer management
     """
     
     def __init__(
@@ -53,7 +56,83 @@ class DatabaseService:
         self._messages = self._db.messages
         self._escalations = self._db.escalations
         self._analytics_events = self._db.analytics_events
+        self._customers = self._db.customers
+
+    # ... initialize and close methods are fine ...
     
+    # ==================== Customers ====================
+    
+    async def get_customer(self, customer_id: UUID) -> Customer | None:
+        """Get customer by ID."""
+        doc = await self._customers.find_one({"_id": str(customer_id)})
+        if doc:
+            return self._dict_to_customer(doc)
+        return None
+    
+    async def get_customer_by_telegram(self, telegram_id: int) -> Customer | None:
+        """Get customer by Telegram ID."""
+        doc = await self._customers.find_one({"telegram_id": telegram_id})
+        if doc:
+            return self._dict_to_customer(doc)
+        return None
+        
+    async def save_customer(self, customer: Customer) -> None:
+        """Save (upsert) customer."""
+        await self._customers.update_one(
+            {"_id": str(customer.id)},
+            {"$set": self._customer_to_dict(customer)},
+            upsert=True
+        )
+
+    # ... Conversations, Messages, Escalations, Analytics ...
+    
+    # ==================== Conversion Helpers ====================
+    
+    def _customer_to_dict(self, customer: Customer) -> dict[str, Any]:
+        """Convert Customer to MongoDB document."""
+        return {
+            "_id": str(customer.id),
+            "crm_id": customer.crm_id,
+            "phone": customer.phone,
+            "first_name": customer.first_name,
+            "last_name": customer.last_name,
+            "email": customer.email,
+            "membership_type": customer.membership_type.value,
+            "membership_start_date": customer.membership_start_date.isoformat() if customer.membership_start_date else None,
+            "membership_end_date": customer.membership_end_date.isoformat() if customer.membership_end_date else None,
+            "status": customer.status.value,
+            "health_score": customer.health_score,
+            "total_visits": customer.total_visits,
+            "last_visit": customer.last_visit,
+            "preferred_classes": customer.preferred_classes,
+            "preferred_language": customer.preferred_language,
+            "telegram_id": customer.telegram_id,
+            "metadata": customer.metadata,
+        }
+        
+    def _dict_to_customer(self, doc: dict[str, Any]) -> Customer:
+        """Convert MongoDB document to Customer."""
+        return Customer(
+            id=UUID(doc["_id"]),
+            crm_id=doc["crm_id"],
+            phone=doc["phone"],
+            first_name=doc["first_name"],
+            last_name=doc.get("last_name"),
+            email=doc.get("email"),
+            membership_type=MembershipType(doc["membership_type"]),
+            membership_start_date=datetime.fromisoformat(doc["membership_start_date"]).date() if doc.get("membership_start_date") else None,
+            membership_end_date=datetime.fromisoformat(doc["membership_end_date"]).date() if doc.get("membership_end_date") else None,
+            status=CustomerStatus(doc["status"]),
+            health_score=doc.get("health_score", 0),
+            total_visits=doc.get("total_visits", 0),
+            last_visit=doc.get("last_visit"),
+            preferred_classes=doc.get("preferred_classes", []),
+            preferred_language=doc.get("preferred_language", "he"),
+            telegram_id=doc.get("telegram_id"),
+            metadata=doc.get("metadata", {}),
+        )
+
+    # ... existing helpers ...
     async def initialize(self) -> None:
         """Create indexes for collections."""
         # Conversations indexes
@@ -72,6 +151,11 @@ class DatabaseService:
         # Analytics events indexes
         await self._analytics_events.create_index("event_type")
         await self._analytics_events.create_index("created_at")
+        
+        # Customers indexes
+        await self._customers.create_index("telegram_id", unique=True, sparse=True)
+        await self._customers.create_index("phone", unique=True, sparse=True)
+        await self._customers.create_index("email", unique=True, sparse=True)
     
     async def close(self) -> None:
         """Close database connection."""

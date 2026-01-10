@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from gym_agent.config import settings
 from gym_agent.agents.orchestrator import GymAgent
-from gym_agent.services.mock_crm import get_mock_crm
+from gym_agent.services.mongo_crm import get_mongo_crm
 
 
 @asynccontextmanager
@@ -25,8 +25,10 @@ async def lifespan(app: FastAPI):
     print(f"   Debug: {settings.debug}")
     
     # Initialize services
-    app.state.agent = GymAgent(crm=get_mock_crm())
-    app.state.crm = get_mock_crm()
+    # Connect to MongoDB CRM
+    crm = get_mongo_crm()
+    app.state.crm = crm
+    app.state.agent = GymAgent(crm=crm)
     
     yield
     
@@ -104,12 +106,23 @@ async def process_message(request: MessageRequest) -> MessageResponse:
     agent: GymAgent = app.state.agent
     crm = app.state.crm
     
-    # Look up customer (for now, search all and match by ID string)
+    # Look up customer (search by ID or CRM ID)
     customer = None
-    for c in crm.get_all_customers():
-        if str(c.id) == request.customer_id or c.crm_id == request.customer_id:
-            customer = c
-            break
+    try:
+        # Try UUID first
+        from uuid import UUID
+        customer_uuid = UUID(request.customer_id)
+        customer = await crm.get_customer(customer_uuid)
+    except ValueError:
+        pass
+        
+    if not customer:
+        # Fallback to scanning all (inefficient but matches old logic for flexibility)
+        # Better: Add get_customer_by_crm_id to service
+        for c in await crm.get_all_customers():
+            if c.crm_id == request.customer_id:
+                customer = c
+                break
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -133,7 +146,7 @@ async def process_message(request: MessageRequest) -> MessageResponse:
 async def list_customers() -> list[dict[str, Any]]:
     """List all customers (for development/testing)."""
     crm = app.state.crm
-    customers = crm.get_all_customers()
+    customers = await crm.get_all_customers()
     
     return [
         {
@@ -155,38 +168,45 @@ async def get_customer(customer_id: str) -> dict[str, Any]:
     """Get customer details."""
     crm = app.state.crm
     
-    for c in crm.get_all_customers():
-        if str(c.id) == customer_id or c.crm_id == customer_id:
-            health_score = await crm.calculate_health_score(c.id)
-            return {
-                "id": str(c.id),
-                "crm_id": c.crm_id,
-                "name": c.full_name,
-                "phone": c.phone,
-                "email": c.email,
-                "status": c.status.value,
-                "membership": {
-                    "type": c.membership_type.value,
-                    "start_date": str(c.membership_start_date) if c.membership_start_date else None,
-                    "end_date": str(c.membership_end_date) if c.membership_end_date else None,
-                    "days_remaining": c.days_until_expiry,
-                },
-                "activity": {
-                    "last_visit": str(c.last_visit) if c.last_visit else None,
-                    "days_since_visit": c.days_since_last_visit,
-                    "total_visits": c.total_visits,
-                    "preferred_classes": c.preferred_classes,
-                },
-                "health_score": {
-                    "total": health_score.score if health_score else c.health_score,
-                    "frequency": health_score.frequency_score if health_score else None,
-                    "trend": health_score.trend_score if health_score else None,
-                    "recency": health_score.recency_score if health_score else None,
-                    "expiry": health_score.expiry_score if health_score else None,
-                },
-            }
+    customer = None
+    try:
+        from uuid import UUID
+        customer = await crm.get_customer(UUID(customer_id))
+    except ValueError:
+        pass
+        
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    health_score = await crm.calculate_health_score(customer.id)
     
-    raise HTTPException(status_code=404, detail="Customer not found")
+    return {
+        "id": str(customer.id),
+        "crm_id": customer.crm_id,
+        "name": customer.full_name,
+        "phone": customer.phone,
+        "email": customer.email,
+        "status": customer.status.value,
+        "membership": {
+            "type": customer.membership_type.value,
+            "start_date": str(customer.membership_start_date) if customer.membership_start_date else None,
+            "end_date": str(customer.membership_end_date) if customer.membership_end_date else None,
+            "days_remaining": customer.days_until_expiry,
+        },
+        "activity": {
+            "last_visit": str(customer.last_visit) if customer.last_visit else None,
+            "days_since_visit": customer.days_since_last_visit,
+            "total_visits": customer.total_visits,
+            "preferred_classes": customer.preferred_classes,
+        },
+        "health_score": {
+            "total": health_score.score if health_score else customer.health_score,
+            "frequency": health_score.frequency_score if health_score else None,
+            "trend": health_score.trend_score if health_score else None,
+            "recency": health_score.recency_score if health_score else None,
+            "expiry": health_score.expiry_score if health_score else None,
+        },
+    }
 
 
 # ==================== Webhook Endpoints (Phase 2) ====================

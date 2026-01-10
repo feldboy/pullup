@@ -15,7 +15,7 @@ from gym_agent.config import settings
 from gym_agent.models.customer import Customer
 from gym_agent.models.conversation import Channel, MessageDirection
 from gym_agent.models.responses import AgentResponse, Intent
-from gym_agent.services.mock_crm import MockCRMService
+from gym_agent.services.mongo_crm import MongoCRMService, get_mongo_crm
 from gym_agent.services.database import DatabaseService, get_database
 from gym_agent.agents.rag import RAGService, search_gym_info
 
@@ -26,7 +26,7 @@ class GymDependencies:
     
     customer: Customer
     gym_name: str
-    crm: MockCRMService
+    crm: MongoCRMService
     conversation_history: list[dict[str, str]] | None = None
 
 
@@ -77,9 +77,17 @@ INTENT DETECTION - Identify the PRIMARY intent from these categories:
    Response: Acknowledge positively, end conversation gracefully
 
 6. QUESTION - Customer asking for information
-   Hebrew: "מתי", "איפה", "כמה", "מה", "האם יש", "שעות"
-   English: "when", "where", "how much", "what", "do you have", "hours"
-   Response: Use search_gym_knowledge tool, answer accurately, admit if unknown
+   Hebrew: "מתי", "איפה", "כמה", "מה", "האם יש", "שעות", "פתוח", "סגור"
+   English: "when", "where", "how much", "what", "do you have", "hours", "open", "close"
+   ⚠️ CRITICAL: You MUST call the search_gym_knowledge tool BEFORE answering ANY factual question.
+   NEVER say "I don't have information" without first calling search_gym_knowledge.
+   Common questions that REQUIRE the tool:
+   - שעות פעילות / opening hours
+   - מיקום / location  
+   - שיעורים / classes
+   - מנויים / memberships
+   - מחירים / prices
+   - חניה / parking
 
 7. COMPLAINT - Customer is unhappy/complaining
    Hebrew: "שירות גרוע", "לא מרוצה", "מתלונן/ת", "בעיה", "נמאס לי"
@@ -117,7 +125,6 @@ CRITICAL RULES:
    - Customer explicitly asks for human
    - Complaint or serious dissatisfaction
    - Complex issues you can't resolve
-
    - After 3 messages without resolution
 """
 
@@ -305,7 +312,7 @@ class GymAgent:
     def __init__(
         self,
         gym_name: str = "EloozFit - אילוזפיט",  # Real gym name from PDF
-        crm: MockCRMService | None = None,
+        crm: MongoCRMService | None = None,
         db: DatabaseService | None = None,
     ):
         """
@@ -317,7 +324,7 @@ class GymAgent:
             db: Database service for persistence (uses default if not provided)
         """
         self.gym_name = gym_name
-        self.crm = crm or MockCRMService()
+        self.crm = crm or get_mongo_crm()
         self.db = db or get_database()
         self._agent = gym_agent
     
